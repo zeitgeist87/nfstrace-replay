@@ -28,7 +28,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#include "cnfsparse.h"
+#include "nfsreplay.h"
 #include "parser.h"
 #include "operations.h"
 #include "nfstree.h"

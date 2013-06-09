@@ -25,7 +25,7 @@
 #include "nfstree.h"
 #include "operations.h"
 #include "parser.h"
-#include "cnfsparse.h"
+#include "nfsreplay.h"
 #include "gc.h"
 
 using namespace std;

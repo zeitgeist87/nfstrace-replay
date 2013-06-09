@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <sys/stat.h>
 #include "nfstree.h"
-#include "cnfsparse.h"
+#include "nfsreplay.h"
 
 void NFSTree::writeToSize(uint64_t size) {
 	auto curr = getSize();
