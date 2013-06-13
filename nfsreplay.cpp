@@ -38,6 +38,22 @@
 using namespace std;
 
 
+#define NFSREPLAY_USAGE												\
+	"Usage: %s [options] [nfs trace file]\n"						\
+	"  -z\t\twrite only zeros\n"									\
+	"  -s minutes\tinterval to sync according\n"					\
+	"\t\tto nfs frame time (defaults to 10)\n"						\
+	"  -S\t\tdisable syncing\n"										\
+	"  -h\t\tdisplay this help and exit\n"							\
+	"  -b yyyy-mm-dd\tdate to begin the replay\n"					\
+	"  -t\t\tdisplay current time (default)\n"						\
+	"  -T\t\tdon't display current time\n"							\
+	"  -d\t\tenable debug output\n"									\
+	"  -g\t\tenable gc for unused nodes (default)\n"				\
+	"  -G\t\tdisable gc for unused nodes\n"							\
+
+
+
 WINDOW *errWin;
 
 void wperror(const char *msg){
@@ -180,9 +196,10 @@ int main(int argc, char **argv) {
 	bool debugOutput = false;
 	int syncMinutes = 10;
 	bool noSync = false;
+	bool enableGC = true;
 	time_t startTime = -1;
 
-	while ((c = getopt(argc, argv, "dzs:StTb:")) != -1) {
+	while ((c = getopt(argc, argv, "dzs:ShtTb:gG")) != -1) {
 		switch (c) {
 		case 'z':
 			//write only zeros
@@ -217,6 +234,9 @@ int main(int argc, char **argv) {
 		case 'S':
 			noSync = true;
 			break;
+		case 'h':
+			printf(NFSREPLAY_USAGE, argv[0]);
+			return EXIT_SUCCESS;
 		case 't':
 			displayTime = true;
 			break;
@@ -227,6 +247,12 @@ int main(int argc, char **argv) {
 		case 'd':
 			//don't display time
 			debugOutput = true;
+			break;
+		case 'g':
+			enableGC = true;
+			break;
+		case 'G':
+			enableGC = false;
 			break;
 		case '?':
 			if (optopt == 's' || optopt == 'b')
@@ -414,12 +440,14 @@ int main(int argc, char **argv) {
 			    	pauseExecution = 0;
 			    }
 
-			    if((last_gc + 60*60*12 < frame.time && fhmap.size() > GC_NODE_THRESHOLD) || fhmap.size() > GC_NODE_HARD_THRESHOLD){
-			    	wprintw(errWin, "RUNNING GC\n");
-			    	wrefresh(errWin);
-			    	do_gc(fhmap, transactions, frame.time);
-			    	last_gc = frame.time;
-			    }
+				if (enableGC && ((last_gc + 60*60*12 < frame.time
+								&& fhmap.size() > GC_NODE_THRESHOLD)
+								|| fhmap.size() > GC_NODE_HARD_THRESHOLD)) {
+					wprintw(errWin, "RUNNING GC\n");
+					wrefresh(errWin);
+					do_gc(fhmap, transactions, frame.time);
+					last_gc = frame.time;
+				}
 
 			    switch(frame.operation){
 			    case REMOVE:
