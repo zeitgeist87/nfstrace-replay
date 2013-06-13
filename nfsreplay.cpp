@@ -27,6 +27,7 @@
 #include <execinfo.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include "nfsreplay.h"
 #include "parser.h"
@@ -270,20 +271,6 @@ int main(int argc, char **argv) {
 			input = stdin;
 		} else {
 			char *filename = argv[optind];
-			char *ext = filename;
-			while(*ext!=0)
-				ext++;
-
-			int len = ext - filename;
-
-			while(*ext!='.' && ext>filename)
-				ext--;
-
-			if(*ext == '.')
-				ext++;
-
-			char command[128 + len];
-
 			/*
 			 * child processes inherit this so
 			 * we have to set it before the
@@ -293,21 +280,51 @@ int main(int argc, char **argv) {
 			 */
 			signal(SIGINT, SIG_IGN);
 
-			if(!strcmp("xz",ext)){
-				strcpy(command, "xz -d -c ");
-				strcat(command, filename);
-				input = popen(command, "r");
-			}else if(!strcmp("gz",ext)){
-				strcpy(command, "gzip -d -c ");
-				strcat(command, filename);
-				input = popen(command, "r");
-			}else if(!strcmp("bz2",ext)){
-				strcpy(command, "bzip2 -k -d -c ");
-				strcat(command, filename);
-				input = popen(command, "r");
+			struct stat st;
+			if(stat(filename,&st) == 0){
+				if(st.st_mode & S_IFDIR){
+					//input is a directory
+					string command = "cat ";
+					command += filename;
+					if(filename[strlen(filename)-1]!='/')
+						command += '/';
+					//the -i switch tells tar to ignore EOF
+					command += "*.tar | tar --to-stdout -i --wildcards -xf - \"*.txt.gz\" | gzip -d -c";
+					input = popen(command.c_str(), "r");
+				}else{
+					//is a file
+					char *ext = filename;
+					while(*ext!=0)
+						ext++;
+
+					while(*ext!='.' && ext>filename)
+						ext--;
+
+					if(*ext == '.')
+						ext++;
+
+					if(!strcmp("xz",ext)){
+						string command = "xz -d -c ";
+						command += filename;
+						input = popen(command.c_str(), "r");
+					}else if(!strcmp("gz",ext)){
+						string command = "gzip -d -c ";
+						command += filename;
+						input = popen(command.c_str(), "r");
+					}else if(!strcmp("bz2",ext)){
+						string command = "bzip2 -k -d -c ";
+						command += filename;
+						input = popen(command.c_str(), "r");
+					}else{
+						input = fopen(filename, "r");
+					}
+				}
 			}else{
-				input = fopen(filename, "r");
+				//file does not exist
+				fprintf(stderr, "Unable to open '%s': File Not Found\n", filename);
+				return EXIT_FAILURE;
 			}
+
 
 			if (NULL == input) {
 				fprintf(stderr, "Unable to open '%s': %s\n", filename,
