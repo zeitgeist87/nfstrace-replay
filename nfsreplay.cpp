@@ -40,19 +40,17 @@ using namespace std;
 
 #define NFSREPLAY_USAGE												\
 	"Usage: %s [options] [nfs trace file]\n"						\
-	"  -z\t\twrite only zeros\n"									\
-	"  -s minutes\tinterval to sync according\n"					\
-	"\t\tto nfs frame time (defaults to 10)\n"						\
-	"  -S\t\tdisable syncing\n"										\
-	"  -h\t\tdisplay this help and exit\n"							\
 	"  -b yyyy-mm-dd\tdate to begin the replay\n"					\
-	"  -t\t\tdisplay current time (default)\n"						\
-	"  -T\t\tdon't display current time\n"							\
 	"  -d\t\tenable debug output\n"									\
 	"  -g\t\tenable gc for unused nodes (default)\n"				\
 	"  -G\t\tdisable gc for unused nodes\n"							\
-
-
+	"  -h\t\tdisplay this help and exit\n"							\
+	"  -s minutes\tinterval to sync according\n"					\
+	"\t\tto nfs frame time (defaults to 10)\n"						\
+	"  -S\t\tdisable syncing\n"										\
+	"  -t\t\tdisplay current time (default)\n"						\
+	"  -T\t\tdon't display current time\n"							\
+	"  -z\t\twrite only zeros (default is random data)\n"			\
 
 WINDOW *errWin;
 
