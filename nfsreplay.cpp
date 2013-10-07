@@ -199,8 +199,9 @@ int main(int argc, char **argv) {
 	bool noSync = false;
 	bool enableGC = true;
 	time_t startTime = -1;
+	time_t endTime = -1;
 
-	while ((c = getopt(argc, argv, "dzs:ShtTb:gG")) != -1) {
+	while ((c = getopt(argc, argv, "dzs:ShtTb:l:gG")) != -1) {
 		switch (c) {
 		case 'z':
 			//write only zeros
@@ -229,6 +230,23 @@ int main(int argc, char **argv) {
                 timeinfo.tm_mday = day;
 
                 startTime = mktime(&timeinfo);
+			}
+		    break;
+		}
+		case 'l': {
+		    int year;
+		    int month;
+		    int day;
+
+			if(sscanf(optarg,"%d-%d-%d",&year,&month,&day) == 3){
+			    struct tm timeinfo;
+		        memset(&timeinfo, 0, sizeof(struct tm));
+
+			    timeinfo.tm_year = year - 1900;
+                timeinfo.tm_mon = month - 1;
+                timeinfo.tm_mday = day;
+
+                endTime = mktime(&timeinfo);
 			}
 		    break;
 		}
@@ -505,6 +523,10 @@ int main(int argc, char **argv) {
 			        	responses_processed++;
 				        processResponse(fhmap, transactions, randbuf, frame);
 			        }
+			    }
+
+                if(endTime != -1 && endTime < frame.time){
+                	goto cleanup;
 			    }
 		    }
 	    }
