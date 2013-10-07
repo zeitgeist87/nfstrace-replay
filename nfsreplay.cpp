@@ -371,7 +371,7 @@ int main(int argc, char **argv) {
 	}
 
 	int sync_fd;
-	if ((sync_fd = open(".sync_file_handle", O_RDONLY | O_CREAT)) == -1){
+	if ((sync_fd = open(".sync_file_handle", O_RDONLY | O_CREAT, S_IRUSR | S_IWUSR)) == -1){
 		perror("ERROR initializing sync file handle");
 		return EXIT_FAILURE;
 	}
