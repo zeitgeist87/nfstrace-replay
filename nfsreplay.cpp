@@ -28,6 +28,8 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
 
 #include "nfsreplay.h"
 #include "parser.h"
@@ -350,6 +352,12 @@ int main(int argc, char **argv) {
 		memset(randbuf, 0, RANDBUF_SIZE);
 	}
 
+	int sync_fd;
+	if ((sync_fd = open(".sync_file_handle", O_RDONLY | O_CREAT)) == -1){
+		perror("ERROR initializing sync file handle");
+		return EXIT_FAILURE;
+	}
+
 	//map file handles to tree nodes
 	multimap<string, NFSTree *> fhmap;
 	//map transaction ids to frames
@@ -439,7 +447,8 @@ int main(int argc, char **argv) {
 			    }
 			    //sync every 10 minutes
 			    if (!noSync && last_sync + syncMinutes * 60 < frame.time) {
-				    sync();
+			    	//sync();
+				    syncfs(sync_fd);
 				    last_sync = frame.time;
 			    }
 
@@ -514,6 +523,8 @@ cleanup:
 	delwin(boxWin);
 	endwin();
 	fclose(input);
+	close(sync_fd);
+	remove(".sync_file_handle");
 
 	for (auto it = fhmap.begin(), e = fhmap.end(); it != e; ++it) {
 		delete it->second;

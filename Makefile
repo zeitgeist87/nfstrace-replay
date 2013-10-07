@@ -4,6 +4,8 @@ LDFLAGS = -lncurses
 
 OBJ = nfsreplay.o gc.o nfstree.o operations.o parser.o
 
+all: nfsreplay
+
 nfsreplay: $(OBJ)
 	$(CC) $(CFLAGS) -o nfsreplay $(OBJ) $(LDFLAGS)
 
@@ -11,4 +13,4 @@ nfsreplay: $(OBJ)
 	$(CC) $(CFLAGS) -c $<
 
 clean:
-	rm cnfsparse *.o -f
+	rm nfsreplay *.o -f
