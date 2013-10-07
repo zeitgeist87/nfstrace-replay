@@ -466,7 +466,9 @@ int main(int argc, char **argv) {
 			    //sync every 10 minutes
 			    if (!noSync && last_sync + syncMinutes * 60 < frame.time) {
 			    	//sync();
-				    syncfs(sync_fd);
+				    if(syncfs(sync_fd) == -1){
+				    	wperror("ERROR syncing file system");
+				    }
 				    last_sync = frame.time;
 			    }
 
