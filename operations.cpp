@@ -309,7 +309,9 @@ void writeFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 		}
 
 		int fd = open(path.c_str(), mode, S_IRUSR | S_IWUSR);
-		if (fd != -1) {
+		if (fd == -1){
+			wperror("ERROR writing to file");
+		} else {
 			element->setCreated(true);
 			if (lseek(fd, req.offset, SEEK_SET) == -1) {
 				wperror("ERROR writing to file");
