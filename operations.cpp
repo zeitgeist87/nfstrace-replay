@@ -18,8 +18,9 @@
 
 #include <string>
 #include <map>
-#include <cstdio>
+#include <sys/types.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <utime.h>
 #include "nfstree.h"
@@ -280,7 +281,7 @@ void removeFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 }
 
 void writeFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
-		const NFSFrame &res, const char *randbuf) {
+		const NFSFrame &res, const char *randbuf, const bool datasync) {
 	if (req.fh.empty())
 		return;
 
@@ -302,25 +303,28 @@ void writeFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 
 		string path = element->calcPath();
 
-		const char *mode = "rb+";
+		int mode = O_RDWR | O_CREAT;
 		if (element->getSize() == 0) {
-			mode = "w";
+			mode |= O_TRUNC;
 		}
 
-		FILE *fd = fopen(path.c_str(), mode);
-		if (fd != NULL) {
+		int fd = open(path.c_str(), mode, S_IRUSR | S_IWUSR);
+		if (fd != -1) {
 			element->setCreated(true);
-			if (fseek(fd, req.offset, SEEK_SET) != 0) {
+			if (lseek(fd, req.offset, SEEK_SET) == -1) {
 				wperror("ERROR writing to file");
 			} else {
 				uint32_t count = req.count;
 				while (count > 0) {
 					auto s = min((uint32_t) RANDBUF_SIZE, count);
-					fwrite(randbuf, 1, s, fd);
+					write(fd, randbuf, s);
 					count -= s;
 				}
 			}
-			fclose(fd);
+			if (datasync){
+				fdatasync(fd);
+			}
+			close(fd);
 		}
 		auto size = element->getSize();
 		if (req.offset + req.count > size) {

@@ -35,7 +35,7 @@ void removeFile(std::multimap<std::string, NFSTree *> &fhmap, const NFSFrame &re
 		const NFSFrame &res);
 
 void writeFile(std::multimap<std::string, NFSTree *> &fhmap, const NFSFrame &req,
-		const NFSFrame &res, const char *randbuf);
+		const NFSFrame &res, const char *randbuf, const bool datasync);
 
 void renameFile(std::multimap<std::string, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res);

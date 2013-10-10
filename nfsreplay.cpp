@@ -45,9 +45,11 @@ using namespace std;
 	"Usage: %s [options] [nfs trace file]\n"						\
 	"  -b yyyy-mm-dd\tdate to begin the replay\n"					\
 	"  -d\t\tenable debug output\n"									\
+	"  -D\t\tuse fdatasync\n"									    \
 	"  -g\t\tenable gc for unused nodes (default)\n"				\
 	"  -G\t\tdisable gc for unused nodes\n"							\
 	"  -h\t\tdisplay this help and exit\n"							\
+	"  -l yyyy-mm-dd\tstop at limit\n"								\
 	"  -s minutes\tinterval to sync according\n"					\
 	"\t\tto nfs frame time (defaults to 10)\n"						\
 	"  -S\t\tdisable syncing\n"										\
@@ -131,7 +133,7 @@ inline static void processRequest(map<uint32_t, NFSFrame> &transactions,
 
 inline static void processResponse(multimap<string, NFSTree *> &fhmap,
 		map<uint32_t, NFSFrame> &transactions, const char *randbuf,
-		const NFSFrame &res) {
+		const NFSFrame &res, const bool datasync) {
 
 	auto transIt = transactions.find(res.xid);
 	if (res.status != FOK || transIt == transactions.end()) {
@@ -159,7 +161,7 @@ inline static void processResponse(multimap<string, NFSTree *> &fhmap,
 		removeFile(fhmap, req, res);
 		break;
 	case WRITE:
-		writeFile(fhmap, req, res, randbuf);
+		writeFile(fhmap, req, res, randbuf, datasync);
 		break;
 	case RENAME:
 		renameFile(fhmap, req, res);
@@ -185,6 +187,34 @@ inline static void processResponse(multimap<string, NFSTree *> &fhmap,
 		transactions.erase(transIt);
 }
 
+static time_t parseTime(const char *input){
+    int year;
+    int month;
+    int day;
+
+	if(sscanf(input,"%d-%d-%d",&year,&month,&day) == 3){
+	    struct tm timeinfo;
+        memset(&timeinfo, 0, sizeof(struct tm));
+
+        char *tz = getenv("TZ");
+        setenv("TZ", "", 1);
+        tzset();
+
+	    timeinfo.tm_year = year - 1900;
+        timeinfo.tm_mon = month - 1;
+        timeinfo.tm_mday = day;
+
+        if (tz)
+        	setenv("TZ", tz, 1);
+        else
+            unsetenv("TZ");
+        tzset();
+
+        return mktime(&timeinfo);
+	}
+	return -1;
+}
+
 int main(int argc, char **argv) {
 	FILE *input;
 
@@ -197,11 +227,12 @@ int main(int argc, char **argv) {
 	bool debugOutput = false;
 	int syncMinutes = 10;
 	bool noSync = false;
+	bool dataSync = false;
 	bool enableGC = true;
 	time_t startTime = -1;
 	time_t endTime = -1;
 
-	while ((c = getopt(argc, argv, "dzs:ShtTb:l:gG")) != -1) {
+	while ((c = getopt(argc, argv, "dDzs:ShtTb:l:gG")) != -1) {
 		switch (c) {
 		case 'z':
 			//write only zeros
@@ -216,40 +247,12 @@ int main(int argc, char **argv) {
 
 			break;
 		}
-		case 'b': {
-		    int year;
-		    int month;
-		    int day;
-
-			if(sscanf(optarg,"%d-%d-%d",&year,&month,&day) == 3){
-			    struct tm timeinfo;
-		        memset(&timeinfo, 0, sizeof(struct tm));
-
-			    timeinfo.tm_year = year - 1900;
-                timeinfo.tm_mon = month - 1;
-                timeinfo.tm_mday = day;
-
-                startTime = mktime(&timeinfo);
-			}
+		case 'b':
+            startTime = parseTime(optarg);
 		    break;
-		}
-		case 'l': {
-		    int year;
-		    int month;
-		    int day;
-
-			if(sscanf(optarg,"%d-%d-%d",&year,&month,&day) == 3){
-			    struct tm timeinfo;
-		        memset(&timeinfo, 0, sizeof(struct tm));
-
-			    timeinfo.tm_year = year - 1900;
-                timeinfo.tm_mon = month - 1;
-                timeinfo.tm_mday = day;
-
-                endTime = mktime(&timeinfo);
-			}
+		case 'l':
+            endTime = parseTime(optarg);
 		    break;
-		}
 		case 'S':
 			noSync = true;
 			break;
@@ -264,8 +267,10 @@ int main(int argc, char **argv) {
 			displayTime = false;
 			break;
 		case 'd':
-			//don't display time
 			debugOutput = true;
+			break;
+		case 'D':
+			dataSync = true;
 			break;
 		case 'g':
 			enableGC = true;
@@ -523,7 +528,7 @@ int main(int argc, char **argv) {
 				        processRequest(transactions, frame);
 			        } else if (frame.protocol == R3 || frame.protocol == R2) {
 			        	responses_processed++;
-				        processResponse(fhmap, transactions, randbuf, frame);
+				        processResponse(fhmap, transactions, randbuf, frame, dataSync);
 			        }
 			    }
 
