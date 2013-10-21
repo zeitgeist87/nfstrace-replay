@@ -50,6 +50,7 @@ using namespace std;
 	"  -G\t\tdisable gc for unused nodes\n"							\
 	"  -h\t\tdisplay this help and exit\n"							\
 	"  -l yyyy-mm-dd\tstop at limit\n"								\
+	"  -r path\twrite report at the end\n"					\
 	"  -s minutes\tinterval to sync according\n"					\
 	"\t\tto nfs frame time (defaults to 10)\n"						\
 	"  -S\t\tdisable syncing\n"										\
@@ -229,10 +230,11 @@ int main(int argc, char **argv) {
 	bool noSync = false;
 	bool dataSync = false;
 	bool enableGC = true;
+	char *reportPath = NULL;
 	time_t startTime = -1;
 	time_t endTime = -1;
 
-	while ((c = getopt(argc, argv, "dDzs:ShtTb:l:gG")) != -1) {
+	while ((c = getopt(argc, argv, "dDzs:ShtTb:l:gGr:")) != -1) {
 		switch (c) {
 		case 'z':
 			//write only zeros
@@ -252,6 +254,11 @@ int main(int argc, char **argv) {
 		    break;
 		case 'l':
             endTime = parseTime(optarg);
+		    break;
+		case 'r':
+			if (reportPath)
+				free(reportPath);
+			reportPath = strdup(optarg);
 		    break;
 		case 'S':
 			noSync = true;
@@ -557,6 +564,23 @@ cleanup:
 
 	for (auto it = fhmap.begin(), e = fhmap.end(); it != e; ++it) {
 		delete it->second;
+	}
+
+	if (reportPath) {
+		FILE *fd = fopen(reportPath, "w");
+		free(reportPath);
+		if (fd) {
+			fprintf(fd, "lines_read %llu\n", lines_read);
+			fprintf(fd, "requests_processed %llu\n", requests_processed);
+			fprintf(fd, "responses_processed %llu\n", responses_processed);
+			fprintf(fd, "remove_operations %llu\n", remove_operations);
+			fprintf(fd, "link_operations %llu\n", link_operations);
+			fprintf(fd, "lookup_operations %llu\n", lookup_operations);
+			fprintf(fd, "rename_operations %llu\n", rename_operations);
+			fprintf(fd, "write_operations %llu\n", write_operations);
+			fprintf(fd, "create_operations %llu\n", create_operations);
+			fclose(fd);
+		}
 	}
 
 	return EXIT_SUCCESS;
