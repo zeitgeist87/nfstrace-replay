@@ -233,6 +233,8 @@ int main(int argc, char **argv) {
 	char *reportPath = NULL;
 	time_t startTime = -1;
 	time_t endTime = -1;
+	int startAfterDays = -1;
+	int endAfterDays = -1;
 
 	while ((c = getopt(argc, argv, "dDzs:ShtTb:l:gGr:")) != -1) {
 		switch (c) {
@@ -251,9 +253,21 @@ int main(int argc, char **argv) {
 		}
 		case 'b':
             startTime = parseTime(optarg);
+            if (startTime < 0){
+            	int tmp = atoi(optarg);
+            	if (tmp > 0){
+            		startAfterDays = tmp;
+            	}
+            }
 		    break;
 		case 'l':
             endTime = parseTime(optarg);
+            if (endTime < 0){
+            	int tmp = atoi(optarg);
+            	if (tmp > 0){
+            		endAfterDays = tmp;
+            	}
+            }
 		    break;
 		case 'r':
 			if (reportPath)
@@ -529,6 +543,10 @@ int main(int argc, char **argv) {
 			    	break;
 			    }
 
+			    if (startTime < 0 && startAfterDays > 0) {
+			    	startTime = frame.time + (startAfterDays * 24*60*60);
+			    }
+
                 if(startTime == -1 || startTime < frame.time){
 			        if (frame.protocol == C3 || frame.protocol == C2) {
 			        	requests_processed++;
@@ -539,6 +557,10 @@ int main(int argc, char **argv) {
 			        }
 			    }
 
+			    if (endTime < 0 && endAfterDays > 0) {
+			    	endTime = frame.time + (endAfterDays * 24*60*60);
+			    }
+
                 if(endTime != -1 && endTime < frame.time){
                 	goto cleanup;
 			    }
@@ -546,7 +568,6 @@ int main(int argc, char **argv) {
 	    }
 	}catch(char const *msg){
 	    printw("%s\n", msg);
-	    abort();
 	}
 
 	//cleanup
