@@ -188,10 +188,46 @@ void parseFrame(NFSFrame &frame, char *line) {
 					&& (!strcmp(last_token, "off")
 							|| !strcmp(last_token, "offset"))) {
 				frame.offset = strtoull(token, NULL, 16);
-			} else if (frame.fh.empty() && !strcmp(last_token, "fh")) {
-				frame.fh = token;
-			} else if (frame.fh2.empty() && !strcmp(last_token, "fh2")) {
-				frame.fh2 = token;
+			} else if (NFS_ID_EMPTY(frame.fh) && !strcmp(last_token, "fh")) {
+				#ifdef SMALL_NFS_ID
+					/*
+					 * the nfs_handle is usually 64 bytes long,
+					 * but most of it is constant, because the device id
+					 * and other constants rarely change
+					 *
+					 * the constant parts always add up to the same value
+					 * the variable parts like inode number should fit into 64 bits
+					 */
+					char tmp;
+					char *tmp2, *tokptr = token;
+					frame.fh = 0;
+
+					while (*tokptr) {
+						tmp = tokptr[16];
+						tokptr[16] = 0;
+						frame.fh += strtoull(tokptr, &tmp2, 16);
+						tokptr[16] = tmp;
+						tokptr = tmp2;
+					}
+				#else
+					frame.fh = token;
+				#endif
+			} else if (NFS_ID_EMPTY(frame.fh2) && !strcmp(last_token, "fh2")) {
+				#ifdef SMALL_NFS_ID
+					char tmp;
+					char *tmp2, *tokptr = token;
+					frame.fh2 = 0;
+
+					while (*tokptr) {
+						tmp = tokptr[16];
+						tokptr[16] = 0;
+						frame.fh2 += strtoull(tokptr, &tmp2, 16);
+						tokptr[16] = tmp;
+						tokptr = tmp2;
+					}
+				#else
+					frame.fh2 = token;
+				#endif
 			} else if (frame.name2.empty()
 					&& (!strcmp(last_token, "fn2")
 							|| !strcmp(last_token, "name2")

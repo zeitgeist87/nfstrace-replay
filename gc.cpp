@@ -20,12 +20,13 @@
 #include <vector>
 #include <ctime>
 #include "gc.h"
+#include "nfsreplay.h"
 #include "parser.h"
 #include "nfstree.h"
 
 using namespace std;
 
-void removeFromMap(multimap<string, NFSTree *> &fhmap, NFSTree *element){
+void removeFromMap(multimap<NFS_ID, NFSTree *> &fhmap, NFSTree *element){
 	auto range = fhmap.equal_range(element->getHandle());
 
 	for (auto it = range.first, e = range.second; it != e; ++it) {
@@ -57,7 +58,7 @@ bool recursive_tree_gc(NFSTree *element, set<NFSTree *> &del_list, time_t ko_tim
 	return true;
 }
 
-void do_gc(std::multimap<std::string, NFSTree *> &fhmap, std::map<uint32_t, NFSFrame> &transactions, time_t time){
+void do_gc(std::multimap<NFS_ID, NFSTree *> &fhmap, std::map<uint32_t, NFSFrame> &transactions, time_t time){
 	set<NFSTree *> del_list;
 	vector<uint32_t> trans_del_list;
 	time_t ko_time = fhmap.size()> GC_NODE_HARD_THRESHOLD ? time - GC_DISCARD_HARD_THRESHOLD : time - GC_DISCARD_THRESHOLD;

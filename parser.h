@@ -22,6 +22,7 @@
 #include <string>
 #include <ctime>
 #include <stdint.h>
+#include "nfsreplay.h"
 
 enum Protocol{
 	NOPROT,R2, C2, R3, C3
@@ -69,9 +70,9 @@ struct NFSFrame{
 	bool size_occured;
 	uint32_t mode;
 	uint64_t offset;
-	std::string fh;
+	NFS_ID fh;
 	std::string name;
-	std::string fh2;
+	NFS_ID fh2;
 	std::string name2;
 	FType ftype;
 
@@ -92,9 +93,16 @@ struct NFSFrame{
 		mode=0;
 		offset=0;
 		name.clear();
-		fh.clear();
+
 		name2.clear();
-		fh2.clear();
+
+		#ifdef SMALL_NFS_ID
+			fh = 0;
+			fh2 = 0;
+		#else
+			fh.clear();
+			fh2.clear();
+		#endif
 	}
 
 	NFSFrame(){

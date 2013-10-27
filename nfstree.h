@@ -23,30 +23,42 @@
 #include <map>
 #include <ctime>
 #include <stdint.h>
+#include <cstdio>
+
+#include "nfsreplay.h"
+
 
 class NFSTree {
 private:
 	NFSTree *parent;
 	std::string name;
-	std::string fh;
+	NFS_ID fh;
 	uint64_t size;
 	bool created;
 	std::map<std::string, NFSTree *> children;
 	time_t last_access;
 
 public:
-	NFSTree(const std::string &fh, time_t timestamp) :
-			parent(0), name(fh), fh(fh), size(0), created(false), last_access(timestamp) {
+	NFSTree(const NFS_ID_R fh, time_t timestamp) :
+			parent(0), fh(fh), size(0), created(false), last_access(timestamp) {
+
+		#ifndef SMALL_NFS_ID
+		name = fh;
 		if (fh.empty()) {
 			throw "NFSTree: Empty fh not allowed";
 		}
+		#else
+		name = getHandleName();
+		#endif
 	}
 
-	NFSTree(const std::string &fh, const std::string &name, time_t timestamp) :
+	NFSTree(const NFS_ID_R fh, const std::string &name, time_t timestamp) :
 			parent(0), name(name), fh(fh), size(0), created(false), last_access(timestamp)  {
+		#ifndef SMALL_NFS_ID
 		if (fh.empty() || name.empty()) {
 			throw "NFSTree: Empty fh or name not allowed";
 		}
+		#endif
 	}
 
 	void setLastAccess(time_t timestamp){
@@ -71,7 +83,17 @@ public:
 	std::string &getName() {
 		return name;
 	}
-	std::string &getHandle() {
+	std::string getHandleName() {
+		#ifndef SMALL_NFS_ID
+			return fh;
+		#else
+			char hexString[2*sizeof(uint64_t)+3];
+			// returns decimal value of hex
+			sprintf(hexString,"0x%lX", fh);
+			return std::string(hexString);
+		#endif
+	}
+	NFS_ID &getHandle() {
 		return fh;
 	}
 	uint64_t getSize() {
@@ -111,10 +133,12 @@ public:
 
 	void setName(const std::string &name);
 
-	void setHandle(const std::string &handle) {
+	void setHandle(const NFS_ID_R handle) {
+		#ifndef SMALL_NFS_ID
 		if (handle.empty()) {
 			throw "setHandle: Empty fh not allowed";
 		}
+		#endif
 		this->fh = handle;
 	}
 

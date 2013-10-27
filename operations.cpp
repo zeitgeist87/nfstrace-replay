@@ -56,10 +56,10 @@ static void createMoveElement(NFSTree *element, NFSTree *parent, const string &n
 		oldparent->clearEmptyDir();
 }
 
-void createLookup(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
+void createLookup(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {
 
-	if (req.fh.empty() || res.fh.empty() || req.fh == res.fh || req.name.empty()
+	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(res.fh) || req.fh == res.fh || req.name.empty()
 			|| (res.ftype != REG && res.ftype != DIR) || req.name == "."
 			|| req.name == "..")
 		return;
@@ -72,7 +72,7 @@ void createLookup(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 	} else {
 		//parent is unknown, create new entry
 		parent = new NFSTree(req.fh, res.time);
-		fhmap.insert(pair<string, NFSTree *>(req.fh, parent));
+		fhmap.insert(pair<NFS_ID, NFSTree *>(req.fh, parent));
 	}
 
 	NFSTree *element = parent->getChild(req.name);
@@ -82,7 +82,7 @@ void createLookup(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 			if (res.ftype == DIR && it != fhmap.end()) {
 				//no duplicate id's allowed
 				//rename to handle name
-				createMoveElement(element, parent, element->getHandle());
+				createMoveElement(element, parent, element->getHandleName());
 				//move in correct element
 				element = it->second;
 				createMoveElement(element, parent, req.name);
@@ -93,7 +93,7 @@ void createLookup(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 				removeFromMap(fhmap, element);
 
 				element->setHandle(res.fh);
-				fhmap.insert(pair<string, NFSTree *>(res.fh, element));
+				fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh, element));
 			}
 		}
 
@@ -110,7 +110,7 @@ void createLookup(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 			} else {
 				//element does not exist create it
 				element = new NFSTree(res.fh, req.name, res.time);
-				fhmap.insert(pair<string, NFSTree *>(res.fh, element));
+				fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh, element));
 				parent->addChild(element);
 			}
 		} else {
@@ -123,7 +123,7 @@ void createLookup(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
                 	//linked file has the same handle but different names
 					NFSTree *el = new NFSTree(element->getHandle(), req.name, res.time);
 					parent->addChild(el);
-					fhmap.insert(pair<string, NFSTree *>(element->getHandle(), el));
+					fhmap.insert(pair<NFS_ID, NFSTree *>(element->getHandle(), el));
 				}else{
 				    //file has no parent move it to new position
 					if(element->isCreated()){
@@ -146,17 +146,17 @@ void createLookup(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 			} else {
 				//element does not exist create it
 				element = new NFSTree(res.fh, req.name, res.time);
-				fhmap.insert(pair<string, NFSTree *>(res.fh, element));
+				fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh, element));
 				parent->addChild(element);
 			}
 		}
 	}
 }
 
-void createFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
+void createFile(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {
 
-	if (req.fh.empty() || res.fh.empty() || req.fh == res.fh || req.name.empty()
+	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(res.fh) || req.fh == res.fh || req.name.empty()
 			|| (res.ftype != REG && res.ftype != DIR) || req.name == "."
 			|| req.name == "..")
 		return;
@@ -169,7 +169,7 @@ void createFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 	} else {
 		//parent is unknown, create new entry
 		parent = new NFSTree(req.fh, res.time);
-		fhmap.insert(pair<string, NFSTree *>(req.fh, parent));
+		fhmap.insert(pair<NFS_ID, NFSTree *>(req.fh, parent));
 		//don't make empty paths
 		//parent->makePath();
 	}
@@ -181,7 +181,7 @@ void createFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 			if (res.ftype == DIR && it != fhmap.end()) {
 				//no duplicate id's allowed
 				//rename to handle name
-				createMoveElement(element, parent, element->getHandle());
+				createMoveElement(element, parent, element->getHandleName());
 				//move in correct element
 				element = it->second;
 				createMoveElement(element, parent, req.name);
@@ -192,7 +192,7 @@ void createFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 				removeFromMap(fhmap, element);
 
 				element->setHandle(res.fh);
-				fhmap.insert(pair<string, NFSTree *>(res.fh, element));
+				fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh, element));
 			}
 		}
 
@@ -217,7 +217,7 @@ void createFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 			} else {
 				//element does not exist create it
 				element = new NFSTree(res.fh, req.name, res.time);
-				fhmap.insert(pair<string, NFSTree *>(res.fh, element));
+				fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh, element));
 				parent->addChild(element);
 			}
 		} else {
@@ -246,7 +246,7 @@ void createFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 			} else {
 				//element does not exist create it
 				element = new NFSTree(res.fh, req.name, res.time);
-				fhmap.insert(pair<string, NFSTree *>(res.fh, element));
+				fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh, element));
 				parent->addChild(element);
 				element->writeToSize(res.size);
 			}
@@ -254,9 +254,9 @@ void createFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 	}
 }
 
-void removeFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
+void removeFile(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {
-	if (req.fh.empty() || req.name.empty())
+	if (NFS_ID_EMPTY(req.fh) || req.name.empty())
 		return;
 
 	auto it = fhmap.find(req.fh);
@@ -280,9 +280,9 @@ void removeFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 	}
 }
 
-void writeFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
+void writeFile(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res, const char *randbuf, const bool datasync) {
-	if (req.fh.empty())
+	if (NFS_ID_EMPTY(req.fh))
 		return;
 
 	if (res.ftype == REG) {
@@ -291,7 +291,7 @@ void writeFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 		if (it == fhmap.end()) {
 			//element does not exist create it
 			element = new NFSTree(req.fh, res.time);
-			fhmap.insert(pair<string, NFSTree *>(req.fh, element));
+			fhmap.insert(pair<NFS_ID, NFSTree *>(req.fh, element));
 		} else {
 			element = it->second;
 			element->setLastAccess(res.time);
@@ -335,9 +335,9 @@ void writeFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 	}
 }
 
-void renameFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
+void renameFile(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {
-	if (req.fh.empty() || req.fh2.empty() || req.name.empty()
+	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(req.fh2) || req.name.empty()
 			|| req.name2.empty() || (req.fh == req.fh2 && req.name == req.name2))
 		return;
 
@@ -360,7 +360,7 @@ void renameFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 		} else {
 			//create new dir
 			dir2 = new NFSTree(req.fh2, res.time);
-			fhmap.insert(pair<string, NFSTree *>(req.fh2, dir2));
+			fhmap.insert(pair<NFS_ID, NFSTree *>(req.fh2, dir2));
 		}
 		NFSTree *el2 = dir2->getChild(req.name2);
 		if ((!el2 || el2->isDeletable()) && el!=el2) {
@@ -395,9 +395,9 @@ void renameFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 	}
 }
 
-void createLink(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
+void createLink(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {
-	if (req.fh.empty() || req.fh2.empty() || req.name.empty())
+	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(req.fh2) || req.name.empty())
 		return;
 
 	auto it = fhmap.find(req.fh);
@@ -412,7 +412,7 @@ void createLink(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 		} else {
 			//create new dir
 			targetdir = new NFSTree(req.fh2, res.time);
-			fhmap.insert(pair<string, NFSTree *>(req.fh2, targetdir));
+			fhmap.insert(pair<NFS_ID, NFSTree *>(req.fh2, targetdir));
 		}
 		NFSTree *element = targetdir->getChild(req.name);
 		if ((!element || element->isDeletable()) && element != srcfile) {
@@ -437,7 +437,7 @@ void createLink(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 			//linked file has the same handle but different names
 			NFSTree *el = new NFSTree(srcfile->getHandle(), req.name, res.time);
 			targetdir->addChild(el);
-			fhmap.insert(pair<string, NFSTree *>(srcfile->getHandle(), el));
+			fhmap.insert(pair<NFS_ID, NFSTree *>(srcfile->getHandle(), el));
 
 			if(srcfile->isCreated()){
 				if (link(oldpath.c_str(), newpath.c_str())) {
@@ -450,9 +450,9 @@ void createLink(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 	}
 }
 
-void createSymlink(multimap<string, NFSTree *> &fhmap,
+void createSymlink(multimap<NFS_ID, NFSTree *> &fhmap,
 		const NFSFrame &req, const NFSFrame &res) {
-	if (req.fh.empty() || res.fh.empty() || req.name.empty() || req.name2.empty())
+	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(res.fh) || req.name.empty() || req.name2.empty())
 		return;
 
 	NFSTree *dir;
@@ -463,7 +463,7 @@ void createSymlink(multimap<string, NFSTree *> &fhmap,
 	} else {
 		//create new dir
 		dir = new NFSTree(req.fh, res.time);
-		fhmap.insert(pair<string, NFSTree *>(req.fh, dir));
+		fhmap.insert(pair<NFS_ID, NFSTree *>(req.fh, dir));
 	}
 
 	NFSTree *element = dir->getChild(req.name);
@@ -482,7 +482,7 @@ void createSymlink(multimap<string, NFSTree *> &fhmap,
 
 		NFSTree *el = new NFSTree(res.fh, req.name, res.time);
 		dir->addChild(el);
-		fhmap.insert(pair<string, NFSTree *>(res.fh, el));
+		fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh, el));
 
 		if(dir->isCreated()){
 			string path = dir->makePath() + '/' + req.name;
@@ -496,9 +496,9 @@ void createSymlink(multimap<string, NFSTree *> &fhmap,
 	}
 }
 
-void getAttr(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
+void getAttr(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {
-	if (req.fh.empty())
+	if (NFS_ID_EMPTY(req.fh))
 		return;
 
 	auto it = fhmap.find(req.fh);
@@ -517,9 +517,9 @@ void getAttr(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 	}
 }
 
-void setAttr(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
+void setAttr(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {
-	if (req.fh.empty())
+	if (NFS_ID_EMPTY(req.fh))
 		return;
 
 	auto it = fhmap.find(req.fh);

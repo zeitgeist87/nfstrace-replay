@@ -32,9 +32,9 @@
 #include <stdio.h>
 
 #include "nfsreplay.h"
+#include "nfstree.h"
 #include "parser.h"
 #include "operations.h"
-#include "nfstree.h"
 #include "gc.h"
 
 
@@ -103,7 +103,7 @@ inline static void processRequest(map<uint32_t, NFSFrame> &transactions,
 	case MKDIR:
 	case REMOVE:
 	case RMDIR:
-		if (!frame.fh.empty() && !frame.name.empty())
+		if (!NFS_ID_EMPTY(frame.fh) && !frame.name.empty())
 			//important: insert does not update value
 			transactions[frame.xid] = frame;
 		break;
@@ -111,20 +111,20 @@ inline static void processRequest(map<uint32_t, NFSFrame> &transactions,
 	case GETATTR:
 	case WRITE:
 	case SETATTR:
-		if (!frame.fh.empty())
+		if (!NFS_ID_EMPTY(frame.fh))
 			transactions[frame.xid] = frame;
 		break;
 	case RENAME:
-		if (!frame.fh.empty() && !frame.fh2.empty() && !frame.name.empty()
+		if (!NFS_ID_EMPTY(frame.fh) && !NFS_ID_EMPTY(frame.fh2) && !frame.name.empty()
 				&& !frame.name2.empty())
 			transactions[frame.xid] = frame;
 		break;
 	case LINK:
-		if (!frame.fh.empty() && !frame.fh2.empty() && !frame.name.empty())
+		if (!NFS_ID_EMPTY(frame.fh) && !NFS_ID_EMPTY(frame.fh2) && !frame.name.empty())
 			transactions[frame.xid] = frame;
 		break;
 	case SYMLINK:
-		if (!frame.fh.empty() && !frame.name.empty() && !frame.name2.empty())
+		if (!NFS_ID_EMPTY(frame.fh) && !frame.name.empty() && !frame.name2.empty())
 			transactions[frame.xid] = frame;
 		break;
 	default:
@@ -132,7 +132,7 @@ inline static void processRequest(map<uint32_t, NFSFrame> &transactions,
 	}
 }
 
-inline static void processResponse(multimap<string, NFSTree *> &fhmap,
+inline static void processResponse(multimap<NFS_ID, NFSTree *> &fhmap,
 		map<uint32_t, NFSFrame> &transactions, const char *randbuf,
 		const NFSFrame &res, const bool datasync) {
 
@@ -403,7 +403,7 @@ int main(int argc, char **argv) {
 	}
 
 	//map file handles to tree nodes
-	multimap<string, NFSTree *> fhmap;
+	multimap<NFS_ID, NFSTree *> fhmap;
 	//map transaction ids to frames
 	map<uint32_t, NFSFrame> transactions;
 
@@ -568,6 +568,7 @@ int main(int argc, char **argv) {
 	    }
 	}catch(char const *msg){
 	    printw("%s\n", msg);
+	    abort();
 	}
 
 	//cleanup

@@ -25,4 +25,16 @@
 
 void wperror(const char *msg);
 
+#define SMALL_NFS_ID 1
+
+#ifdef SMALL_NFS_ID
+	#define NFS_ID uint64_t
+	#define NFS_ID_R uint64_t
+	#define NFS_ID_EMPTY(name) ((name) == 0)
+#else
+	#define NFS_ID std::string
+	#define NFS_ID_R std::string &
+	#define NFS_ID_EMPTY(name) (name.empty())
+#endif
+
 #endif /* CNFSPARSE_H_ */

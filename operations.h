@@ -21,35 +21,36 @@
 
 #include <string>
 #include <map>
+#include "nfsreplay.h"
 #include "nfstree.h"
 #include "parser.h"
 
 
-void createLookup(std::multimap<std::string, NFSTree *> &fhmap, const NFSFrame &req,
+void createLookup(std::multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res);
 
-void createFile(std::multimap<std::string, NFSTree *> &fhmap, const NFSFrame &req,
+void createFile(std::multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res);
 
-void removeFile(std::multimap<std::string, NFSTree *> &fhmap, const NFSFrame &req,
+void removeFile(std::multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res);
 
-void writeFile(std::multimap<std::string, NFSTree *> &fhmap, const NFSFrame &req,
+void writeFile(std::multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res, const char *randbuf, const bool datasync);
 
-void renameFile(std::multimap<std::string, NFSTree *> &fhmap, const NFSFrame &req,
+void renameFile(std::multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res);
 
-void createLink(std::multimap<std::string, NFSTree *> &fhmap, const NFSFrame &req,
+void createLink(std::multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res);
 
-void createSymlink(std::multimap<std::string, NFSTree *> &fhmap,
+void createSymlink(std::multimap<NFS_ID, NFSTree *> &fhmap,
 		const NFSFrame &req, const NFSFrame &res);
 
-void getAttr(std::multimap<std::string, NFSTree *> &fhmap, const NFSFrame &req,
+void getAttr(std::multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res);
 
-void setAttr(std::multimap<std::string, NFSTree *> &fhmap, const NFSFrame &req,
+void setAttr(std::multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res);
 
 
