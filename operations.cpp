@@ -31,6 +31,31 @@
 
 using namespace std;
 
+static void createMoveElement(NFSTree *element, NFSTree *parent, const string &name){
+
+	if(element->isCreated()){
+		string oldpath = element->calcPath();
+		string newpath = parent->makePath() + '/' + name;
+
+		//move element to new parent
+		if (rename(oldpath.c_str(), newpath.c_str())) {
+			wperror("ERROR moving");
+		}else{
+			if(oldpath != newpath)
+				remove(oldpath.c_str());
+		}
+	}
+
+	//move element to new parent
+	NFSTree *oldparent = element->getParent();
+	if(oldparent)
+		oldparent->removeChild(element);
+	element->setName(name);
+	parent->addChild(element);
+	if(oldparent)
+		oldparent->clearEmptyDir();
+}
+
 void createLookup(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {
 
@@ -53,11 +78,23 @@ void createLookup(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 	NFSTree *element = parent->getChild(req.name);
 	if (element) {
 		if (element->getHandle() != res.fh) {
-			//replace fh of current element
-			removeFromMap(fhmap, element);
+			it = fhmap.find(res.fh);
+			if (res.ftype == DIR && it != fhmap.end()) {
+				//no duplicate id's allowed
+				//rename to handle name
+				createMoveElement(element, parent, element->getHandle());
+				//move in correct element
+				element = it->second;
+				createMoveElement(element, parent, req.name);
 
-			element->setHandle(res.fh);
-			fhmap.insert(pair<string, NFSTree *>(res.fh, element));
+				element->setLastAccess(res.time);
+			} else {
+				//replace fh of current element
+				removeFromMap(fhmap, element);
+
+				element->setHandle(res.fh);
+				fhmap.insert(pair<string, NFSTree *>(res.fh, element));
+			}
 		}
 
 		element->setLastAccess(res.time);
@@ -68,29 +105,7 @@ void createLookup(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 			it = fhmap.find(res.fh);
 			if (it != fhmap.end()) {
 				element = it->second;
-
-				if(element->isCreated()){
-					string oldpath = element->calcPath();
-					string newpath = parent->makePath() + '/' + req.name;
-
-					//move element to new parent
-					if (rename(oldpath.c_str(), newpath.c_str())) {
-						wperror("ERROR moving");
-					}else{
-						if(oldpath != newpath)
-							remove(oldpath.c_str());
-					}
-				}
-
-				//move element to new parent
-				NFSTree *oldparent = element->getParent();
-				if(oldparent)
-					oldparent->removeChild(element);
-				element->setName(req.name);
-				parent->addChild(element);
-				if(oldparent)
-					oldparent->clearEmptyDir();
-
+				createMoveElement(element, parent, req.name);
 				element->setLastAccess(res.time);
 			} else {
 				//element does not exist create it
@@ -162,11 +177,23 @@ void createFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 	NFSTree *element = parent->getChild(req.name);
 	if (element) {
 		if (element->getHandle() != res.fh) {
-			//replace fh of current element
-			removeFromMap(fhmap, element);
+			it = fhmap.find(res.fh);
+			if (res.ftype == DIR && it != fhmap.end()) {
+				//no duplicate id's allowed
+				//rename to handle name
+				createMoveElement(element, parent, element->getHandle());
+				//move in correct element
+				element = it->second;
+				createMoveElement(element, parent, req.name);
 
-			element->setHandle(res.fh);
-			fhmap.insert(pair<string, NFSTree *>(res.fh, element));
+				element->setLastAccess(res.time);
+			} else {
+				//replace fh of current element
+				removeFromMap(fhmap, element);
+
+				element->setHandle(res.fh);
+				fhmap.insert(pair<string, NFSTree *>(res.fh, element));
+			}
 		}
 
 		//write file to new size
@@ -184,41 +211,14 @@ void createFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 			it = fhmap.find(res.fh);
 			if (it != fhmap.end()) {
 				element = it->second;
-
 				//move element to new parent
-				if (element->isCreated()) {
-					string oldpath = element->calcPath();
-					string newpath = parent->makePath() + '/' + req.name;
-
-					if (rename(oldpath.c_str(), newpath.c_str())) {
-						wperror("ERROR moving");
-					} else {
-						if(oldpath != newpath)
-							remove(oldpath.c_str());
-					}
-				}
-
-				//move element to new parent
-				NFSTree *oldparent = element->getParent();
-				if (oldparent)
-					oldparent->removeChild(element);
-				element->setName(req.name);
-				parent->addChild(element);
-
-				//don't create empty paths
-				//element->makePath();
-				if (oldparent)
-					oldparent->clearEmptyDir();
-
+				createMoveElement(element, parent, req.name);
 				element->setLastAccess(res.time);
 			} else {
 				//element does not exist create it
 				element = new NFSTree(res.fh, req.name, res.time);
 				fhmap.insert(pair<string, NFSTree *>(res.fh, element));
 				parent->addChild(element);
-
-				//don't create empty paths
-				//element->makePath();
 			}
 		} else {
 			it = fhmap.find(res.fh);
@@ -378,6 +378,9 @@ void renameFile(multimap<string, NFSTree *> &fhmap, const NFSFrame &req,
 
 			//target already exists and must be deleted cause it gets overwritten
 			if (el2) {
+				if(el2->isCreated()){
+					el->setCreated(true);
+				}
 				removeFromMap(fhmap, el2);
 				dir2->deleteChild(el2);
 			}
