@@ -17,7 +17,7 @@
  */
 
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -56,7 +56,7 @@ static void createMoveElement(NFSTree *element, NFSTree *parent, const string &n
 		oldparent->clearEmptyDir();
 }
 
-void createLookup(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
+void createLookup(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {
 
 	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(res.fh) || req.fh == res.fh || req.name.empty()
@@ -153,7 +153,7 @@ void createLookup(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 	}
 }
 
-void createFile(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
+void createFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {
 
 	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(res.fh) || req.fh == res.fh || req.name.empty()
@@ -254,7 +254,7 @@ void createFile(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 	}
 }
 
-void removeFile(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
+void removeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {
 	if (NFS_ID_EMPTY(req.fh) || req.name.empty())
 		return;
@@ -280,7 +280,7 @@ void removeFile(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 	}
 }
 
-void writeFile(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
+void writeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res, const char *randbuf, const bool datasync) {
 	if (NFS_ID_EMPTY(req.fh))
 		return;
@@ -335,7 +335,7 @@ void writeFile(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 	}
 }
 
-void renameFile(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
+void renameFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {
 	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(req.fh2) || req.name.empty()
 			|| req.name2.empty() || (req.fh == req.fh2 && req.name == req.name2))
@@ -395,7 +395,7 @@ void renameFile(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 	}
 }
 
-void createLink(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
+void createLink(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {
 	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(req.fh2) || req.name.empty())
 		return;
@@ -450,7 +450,7 @@ void createLink(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 	}
 }
 
-void createSymlink(multimap<NFS_ID, NFSTree *> &fhmap,
+void createSymlink(unordered_multimap<NFS_ID, NFSTree *> &fhmap,
 		const NFSFrame &req, const NFSFrame &res) {
 	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(res.fh) || req.name.empty() || req.name2.empty())
 		return;
@@ -496,7 +496,7 @@ void createSymlink(multimap<NFS_ID, NFSTree *> &fhmap,
 	}
 }
 
-void getAttr(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
+void getAttr(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {
 	if (NFS_ID_EMPTY(req.fh))
 		return;
@@ -517,7 +517,7 @@ void getAttr(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 	}
 }
 
-void setAttr(multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
+void setAttr(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {
 	if (NFS_ID_EMPTY(req.fh))
 		return;

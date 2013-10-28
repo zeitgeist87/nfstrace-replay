@@ -19,7 +19,7 @@
 #ifndef GC_H_
 #define GC_H_
 
-#include <map>
+#include <unordered_map>
 #include <ctime>
 #include "nfsreplay.h"
 #include "parser.h"
@@ -31,7 +31,7 @@
 #define GC_DISCARD_THRESHOLD 60*60*24
 #define GC_MAX_TRANSACTIONTIME 5*60
 
-void removeFromMap(std::multimap<NFS_ID, NFSTree *> &fhmap, NFSTree *element);
-void do_gc(std::multimap<NFS_ID, NFSTree *> &fhmap, std::map<uint32_t, NFSFrame> &transactions, time_t time);
+void removeFromMap(std::unordered_multimap<NFS_ID, NFSTree *> &fhmap, NFSTree *element);
+void do_gc(std::unordered_multimap<NFS_ID, NFSTree *> &fhmap, std::unordered_map<uint32_t, NFSFrame> &transactions, time_t time);
 
 #endif /* GC_H_ */

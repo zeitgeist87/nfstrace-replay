@@ -16,8 +16,11 @@
  *      Author: Andreas Rohner
  */
 
+#undef __cplusplus
+#define __cplusplus 201103L
+
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <cstdlib>
 #include <cerrno>
 #include <cstring>
@@ -95,7 +98,7 @@ void sigint_handler(int sig){
 	}
 }
 
-inline static void processRequest(map<uint32_t, NFSFrame> &transactions,
+inline static void processRequest(unordered_map<uint32_t, NFSFrame> &transactions,
 		NFSFrame &frame) {
 	switch (frame.operation) {
 	case LOOKUP:
@@ -132,8 +135,8 @@ inline static void processRequest(map<uint32_t, NFSFrame> &transactions,
 	}
 }
 
-inline static void processResponse(multimap<NFS_ID, NFSTree *> &fhmap,
-		map<uint32_t, NFSFrame> &transactions, const char *randbuf,
+inline static void processResponse(unordered_multimap<NFS_ID, NFSTree *> &fhmap,
+		unordered_map<uint32_t, NFSFrame> &transactions, const char *randbuf,
 		const NFSFrame &res, const bool datasync) {
 
 	auto transIt = transactions.find(res.xid);
@@ -403,9 +406,10 @@ int main(int argc, char **argv) {
 	}
 
 	//map file handles to tree nodes
-	multimap<NFS_ID, NFSTree *> fhmap;
+	unordered_multimap<NFS_ID, NFSTree *> fhmap;
+	fhmap.reserve(GC_NODE_HARD_THRESHOLD);
 	//map transaction ids to frames
-	map<uint32_t, NFSFrame> transactions;
+	unordered_map<uint32_t, NFSFrame> transactions;
 
 	time_t last_sync = 0;
 	time_t last_print = 0;
