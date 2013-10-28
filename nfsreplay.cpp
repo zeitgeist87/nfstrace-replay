@@ -558,7 +558,11 @@ int main(int argc, char **argv) {
 			    }
 
 			    if (endTime < 0 && endAfterDays > 0) {
-			    	endTime = frame.time + (endAfterDays * 24*60*60);
+			    	if (startTime > 0) {
+			    		endTime = startTime + (endAfterDays * 24*60*60);
+			    	} else {
+			    		endTime = frame.time + (endAfterDays * 24*60*60);
+			    	}
 			    }
 
                 if(endTime != -1 && endTime < frame.time){
