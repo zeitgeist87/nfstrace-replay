@@ -16,8 +16,10 @@
  *      Author: Andreas Rohner
  */
 
-#undef __cplusplus
-#define __cplusplus 201103L
+#if __cplusplus < 201103L
+	#undef __cplusplus
+	#define __cplusplus 201103L
+#endif
 
 #include <string>
 #include <unordered_map>

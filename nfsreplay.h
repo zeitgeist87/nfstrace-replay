@@ -34,7 +34,7 @@ void wperror(const char *msg);
 #else
 	#define NFS_ID std::string
 	#define NFS_ID_R std::string &
-	#define NFS_ID_EMPTY(name) (name.empty())
+	#define NFS_ID_EMPTY(name) ((name).empty())
 #endif
 
 #endif /* CNFSPARSE_H_ */
