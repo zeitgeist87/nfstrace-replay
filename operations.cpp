@@ -56,6 +56,30 @@ static void createMoveElement(NFSTree *element, NFSTree *parent, const string &n
 		oldparent->clearEmptyDir();
 }
 
+static void createChangeFType(NFSTree *element, FType ftype){
+	if (ftype == DIR && !element->isDir()) {
+		if(element->isCreated()){
+			if (remove(element->calcPath().c_str())) {
+				wperror("ERROR changing type");
+			} else {
+				element->setCreated(false);
+			}
+		}
+
+		element->setDir(true);
+	} else if (ftype != DIR && element->isDir()) {
+		if(element->isCreated()){
+			if (remove(element->calcPath().c_str())) {
+				wperror("ERROR changing type");
+			} else {
+				element->setCreated(false);
+			}
+		}
+
+		element->setDir(false);
+	}
+}
+
 void createLookup(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {
 
@@ -72,6 +96,7 @@ void createLookup(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &
 	} else {
 		//parent is unknown, create new entry
 		parent = new NFSTree(req.fh, res.time);
+		parent->setDir(true);
 		fhmap.insert(pair<NFS_ID, NFSTree *>(req.fh, parent));
 	}
 
@@ -86,8 +111,6 @@ void createLookup(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &
 				//move in correct element
 				element = it->second;
 				createMoveElement(element, parent, req.name);
-
-				element->setLastAccess(res.time);
 			} else {
 				//replace fh of current element
 				removeFromMap(fhmap, element);
@@ -97,6 +120,7 @@ void createLookup(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &
 			}
 		}
 
+		createChangeFType(element, res.ftype);
 		element->setLastAccess(res.time);
 	} else {
 		//search for real element
@@ -106,10 +130,12 @@ void createLookup(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &
 			if (it != fhmap.end()) {
 				element = it->second;
 				createMoveElement(element, parent, req.name);
+				createChangeFType(element, res.ftype);
 				element->setLastAccess(res.time);
 			} else {
 				//element does not exist create it
 				element = new NFSTree(res.fh, req.name, res.time);
+				element->setDir(true);
 				fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh, element));
 				parent->addChild(element);
 			}
@@ -122,6 +148,7 @@ void createLookup(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &
                 if(element->getParent()){
                 	//linked file has the same handle but different names
 					NFSTree *el = new NFSTree(element->getHandle(), req.name, res.time);
+					el->setDir(false);
 					parent->addChild(el);
 					fhmap.insert(pair<NFS_ID, NFSTree *>(element->getHandle(), el));
 				}else{
@@ -140,12 +167,14 @@ void createLookup(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &
 
 					element->setName(req.name);
 					parent->addChild(element);
+					createChangeFType(element, res.ftype);
 				}
 
                 element->setLastAccess(res.time);
 			} else {
 				//element does not exist create it
 				element = new NFSTree(res.fh, req.name, res.time);
+				element->setDir(false);
 				fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh, element));
 				parent->addChild(element);
 			}
@@ -169,6 +198,7 @@ void createFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 	} else {
 		//parent is unknown, create new entry
 		parent = new NFSTree(req.fh, res.time);
+		parent->setDir(true);
 		fhmap.insert(pair<NFS_ID, NFSTree *>(req.fh, parent));
 		//don't make empty paths
 		//parent->makePath();
@@ -185,8 +215,6 @@ void createFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 				//move in correct element
 				element = it->second;
 				createMoveElement(element, parent, req.name);
-
-				element->setLastAccess(res.time);
 			} else {
 				//replace fh of current element
 				removeFromMap(fhmap, element);
@@ -204,6 +232,8 @@ void createFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 		if (res.ftype != DIR) {
 			element->writeToSize(res.size);
 		}
+
+		createChangeFType(element, res.ftype);
 		element->setLastAccess(res.time);
 	} else {
 		//search for real element
@@ -213,10 +243,12 @@ void createFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 				element = it->second;
 				//move element to new parent
 				createMoveElement(element, parent, req.name);
+				createChangeFType(element, res.ftype);
 				element->setLastAccess(res.time);
 			} else {
 				//element does not exist create it
 				element = new NFSTree(res.fh, req.name, res.time);
+				element->setDir(true);
 				fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh, element));
 				parent->addChild(element);
 			}
@@ -225,8 +257,11 @@ void createFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 			if (it != fhmap.end()) {
 				element = it->second;
 				if (element->isCreated()) {
-					remove(element->calcPath().c_str());
-					element->setCreated(false);
+					if (remove(element->calcPath().c_str())) {
+						wperror("ERROR creating element");
+					} else {
+						element->setCreated(false);
+					}
 				}
 
 				NFSTree *oldparent = element->getParent();
@@ -234,6 +269,8 @@ void createFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 					oldparent->removeChild(element);
 				element->setName(req.name);
 				parent->addChild(element);
+
+				createChangeFType(element, res.ftype);
 
 				//write file to new size
 				element->setSize(0);
@@ -246,6 +283,7 @@ void createFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 			} else {
 				//element does not exist create it
 				element = new NFSTree(res.fh, req.name, res.time);
+				element->setDir(false);
 				fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh, element));
 				parent->addChild(element);
 				element->writeToSize(res.size);
@@ -291,6 +329,7 @@ void writeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req
 		if (it == fhmap.end()) {
 			//element does not exist create it
 			element = new NFSTree(req.fh, res.time);
+			element->setDir(false);
 			fhmap.insert(pair<NFS_ID, NFSTree *>(req.fh, element));
 		} else {
 			element = it->second;
@@ -360,6 +399,7 @@ void renameFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 		} else {
 			//create new dir
 			dir2 = new NFSTree(req.fh2, res.time);
+			dir2->setDir(true);
 			fhmap.insert(pair<NFS_ID, NFSTree *>(req.fh2, dir2));
 		}
 		NFSTree *el2 = dir2->getChild(req.name2);
@@ -412,6 +452,7 @@ void createLink(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 		} else {
 			//create new dir
 			targetdir = new NFSTree(req.fh2, res.time);
+			targetdir->setDir(true);
 			fhmap.insert(pair<NFS_ID, NFSTree *>(req.fh2, targetdir));
 		}
 		NFSTree *element = targetdir->getChild(req.name);
@@ -436,6 +477,7 @@ void createLink(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 
 			//linked file has the same handle but different names
 			NFSTree *el = new NFSTree(srcfile->getHandle(), req.name, res.time);
+			el->setDir(false);
 			targetdir->addChild(el);
 			fhmap.insert(pair<NFS_ID, NFSTree *>(srcfile->getHandle(), el));
 
@@ -463,6 +505,7 @@ void createSymlink(unordered_multimap<NFS_ID, NFSTree *> &fhmap,
 	} else {
 		//create new dir
 		dir = new NFSTree(req.fh, res.time);
+		dir->setDir(true);
 		fhmap.insert(pair<NFS_ID, NFSTree *>(req.fh, dir));
 	}
 
@@ -481,6 +524,7 @@ void createSymlink(unordered_multimap<NFS_ID, NFSTree *> &fhmap,
 		}
 
 		NFSTree *el = new NFSTree(res.fh, req.name, res.time);
+		el->setDir(false);
 		dir->addChild(el);
 		fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh, el));
 
@@ -495,6 +539,7 @@ void createSymlink(unordered_multimap<NFS_ID, NFSTree *> &fhmap,
 		}
 	}
 }
+
 
 void getAttr(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		const NFSFrame &res) {

@@ -19,6 +19,7 @@
 #include <string>
 #include <map>
 #include <cstdio>
+#include <cstring>
 #include <stdint.h>
 #include <sys/stat.h>
 #include "nfstree.h"
@@ -61,16 +62,29 @@ NFSTree *NFSTree::getChild(const std::string &name) {
 	return it->second;
 }
 
-void NFSTree::clearEmptyDir(){
-	if(children.empty() && isCreated()){
-		if(remove(calcPath().c_str())){
-			wperror("ERROR recursive remove");
-		}else{
-			setCreated(false);
-			if(parent)
-				parent->clearEmptyDir();
-		}
+bool NFSTree::isChildCreated() {
+	for(auto it = children.begin(), e = children.end(); it != e; ++it){
+		if (it->second->isCreated())
+			return true;
 	}
+	return false;
+}
+
+void NFSTree::clearEmptyDir(){
+	NFSTree *el = this;
+	do{
+		if(el->isCreated() && (!el->hasChildren() || !el->isChildCreated())){
+			if(remove(el->calcPath().c_str())){
+				wperror("ERROR recursive remove");
+				break;
+			}else{
+				el->setCreated(false);
+				el = el->getParent();
+			}
+		} else {
+			break;
+		}
+	}while(el);
 }
 
 void NFSTree::removeChild(NFSTree *child) {
@@ -130,6 +144,27 @@ void NFSTree::setName(const std::string &name) {
 }
 
 std::string NFSTree::calcPath() {
+	char buffer[4096];
+	char *pos = buffer + 4096;
+	NFSTree *node = this;
+
+	do {
+		pos = pos - node->getName().size();
+		if (pos <= buffer)
+			throw "calcPath: Path too long";
+
+		memcpy(pos, node->getName().c_str(), node->getName().size());
+		node = node->getParent();
+
+		--pos;
+		*pos = '/';
+	}while(node);
+
+	++pos;
+	return std::string(pos, (size_t)(buffer + 4096 - pos));
+}
+
+/*std::string NFSTree::calcPath() {
 	NFSTree *node = this;
 	std::string path = node->name;
 	node = node->parent;
@@ -138,9 +173,48 @@ std::string NFSTree::calcPath() {
 		node = node->parent;
 	}
 	return path;
+}*/
+
+static size_t makePathHelper(NFSTree *node, char *buffer, int mode, int print){
+	if (!node)
+		return 0;
+
+	size_t pos = makePathHelper(node->getParent(), buffer, mode, print);
+
+	if (pos) {
+		buffer[pos] = '/';
+		++pos;
+	}
+
+	if (pos + node->getName().size() > 4096)
+		throw "makePath: Path too long";
+
+	memcpy(buffer + pos, node->getName().c_str(), node->getName().size());
+
+	pos += node->getName().size();
+
+	buffer[pos] = 0;
+
+	if (!node->isCreated() && mkdir(buffer, mode)) {
+		wperror("ERROR creating directory");
+	} else {
+		node->setCreated(true);
+	}
+
+	return pos;
 }
 
 std::string NFSTree::makePath(int mode) {
+	if (isCreated())
+		return calcPath();
+
+	char buffer[4096];
+
+	size_t len = makePathHelper(this, buffer, mode, false);
+	return std::string(buffer, len);
+}
+
+/*std::string NFSTree::makePath(int mode) {
 	if (created)
 		return calcPath();
 	std::string path = name;
@@ -152,4 +226,4 @@ std::string NFSTree::makePath(int mode) {
 	}
 	created = true;
 	return path;
-}
+}*/

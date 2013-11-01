@@ -35,12 +35,13 @@ private:
 	NFS_ID fh;
 	uint64_t size;
 	bool created;
+	bool dir;
 	std::map<std::string, NFSTree *> children;
 	time_t last_access;
 
 public:
 	NFSTree(const NFS_ID_R fh, time_t timestamp) :
-			parent(0), fh(fh), size(0), created(false), last_access(timestamp) {
+			parent(0), fh(fh), size(0), created(false), dir(false), last_access(timestamp) {
 
 		#ifndef SMALL_NFS_ID
 		name = fh;
@@ -53,7 +54,7 @@ public:
 	}
 
 	NFSTree(const NFS_ID_R fh, const std::string &name, time_t timestamp) :
-			parent(0), name(name), fh(fh), size(0), created(false), last_access(timestamp)  {
+			parent(0), name(name), fh(fh), size(0), created(false), dir(false), last_access(timestamp)  {
 		#ifndef SMALL_NFS_ID
 		if (fh.empty() || name.empty()) {
 			throw "NFSTree: Empty fh or name not allowed";
@@ -158,12 +159,22 @@ public:
 
 	std::string makePath(int mode = 0755);
 
+	bool isChildCreated();
+
 	bool isCreated() const {
 		return created;
 	}
 
 	void setCreated(bool created) {
 		this->created = created;
+	}
+
+	bool isDir() const {
+		return dir;
+	}
+
+	void setDir(bool dir) {
+		this->dir = dir;
 	}
 };
 

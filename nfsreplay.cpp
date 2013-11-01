@@ -16,11 +16,6 @@
  *      Author: Andreas Rohner
  */
 
-#if __cplusplus < 201103L
-	#undef __cplusplus
-	#define __cplusplus 201103L
-#endif
-
 #include <string>
 #include <unordered_map>
 #include <cstdlib>
@@ -72,7 +67,7 @@ void wperror(const char *msg){
 	i++;
 }
 
-static void bailout(){
+void bailout(){
     void *array[20];
     size_t size;
 
