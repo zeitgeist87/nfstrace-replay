@@ -581,9 +581,10 @@ void setAttr(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 				wperror("ERROR setting attributes");
 			}
 
-			if (req.size_occured) {
+			/* too many wrong values in the traces e.g. > 20 TB */
+			/*if (req.size_occured) {
 				element->writeToSize(req.size);
-			}
+			}*/
 
 			if (req.atime || req.mtime) {
 				struct utimbuf buf;
