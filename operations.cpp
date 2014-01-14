@@ -347,7 +347,14 @@ void writeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req
 			mode |= O_TRUNC;
 		}
 
-		int fd = open(path.c_str(), mode, S_IRUSR | S_IWUSR);
+		int i, fd = -1;
+		//try three times to open the file and then give up
+		for (i = 0; i < 3; ++i) {
+			if ((fd = open(path.c_str(), mode, S_IRUSR | S_IWUSR)) != -1)
+				break;
+			sleep(10);
+		}
+
 		if (fd == -1){
 			wperror("ERROR writing to file");
 		} else {
