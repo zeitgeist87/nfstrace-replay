@@ -18,21 +18,29 @@
 
 #include <string>
 #include <map>
-#include <cstdio>
+#include <unistd.h>
+#include <fcntl.h>
 #include <cstring>
 #include <stdint.h>
 #include <sys/stat.h>
+#include <cerrno>
 #include "nfstree.h"
 #include "nfsreplay.h"
 
 void NFSTree::writeToSize(uint64_t size) {
 	auto curr = getSize();
-	if (curr == size && created)
-		return;
 
-	const char *mode = "rb+";
-	if (size < curr || !created) {
-		mode = "w";
+	if (created) {
+		if (curr == size)
+			return;
+
+		if (truncate(calcPath().c_str(), size) == 0)
+			return;
+	}
+
+	int mode = O_RDWR | O_CREAT;
+	if (size < curr) {
+		mode |= O_TRUNC;
 	}
 
 	if(parent && !parent->isCreated()){
@@ -41,19 +49,41 @@ void NFSTree::writeToSize(uint64_t size) {
 
 	setSize(size);
 
-	FILE *fd = fopen(calcPath().c_str(), mode);
-	if (fd != NULL) {
-		if (size > 0) {
-			if (fseek(fd, size - 1, SEEK_SET) != 0) {
-				wperror("ERROR writing to file");
-			} else {
-				fwrite("w", 1, 1, fd);
-			}
-		}
-		fclose(fd);
+
+	int i, fd = -1;
+	//try three times to open the file and then give up
+	for (i = 0; i < 3; ++i) {
+		if ((fd = open(calcPath().c_str(), mode, S_IRUSR | S_IWUSR)) != -1)
+			break;
+		if (errno != ENOSPC)
+			break;
+		sleep(10);
 	}
+
+	if (fd == -1){
+		wperror("ERROR opening file");
+		return;
+	}
+
 	created = true;
+
+	if (ftruncate(fd, size)) {
+		if (errno == EPERM) {
+			if (lseek(fd, size - 1, SEEK_SET) == -1) {
+				wperror("ERROR seeking file");
+			} else {
+				if (write(fd, "w", 1) != 1)
+					wperror("ERROR writing file");
+			}
+		} else {
+			wperror("ERROR truncating file");
+		}
+	}
+
+	close(fd);
 }
+
+
 
 NFSTree *NFSTree::getChild(const std::string &name) {
 	auto it = children.find(name);

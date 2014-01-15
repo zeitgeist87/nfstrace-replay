@@ -352,20 +352,23 @@ void writeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req
 		for (i = 0; i < 3; ++i) {
 			if ((fd = open(path.c_str(), mode, S_IRUSR | S_IWUSR)) != -1)
 				break;
+			if (errno != ENOSPC)
+				break;
 			sleep(10);
 		}
 
 		if (fd == -1){
-			wperror("ERROR writing to file");
+			wperror("ERROR opening file");
 		} else {
 			element->setCreated(true);
 			if (lseek(fd, req.offset, SEEK_SET) == -1) {
-				wperror("ERROR writing to file");
+				wperror("ERROR seeking file");
 			} else {
 				uint32_t count = req.count;
 				while (count > 0) {
 					auto s = min((uint32_t) RANDBUF_SIZE, count);
-					write(fd, randbuf, s);
+					if (write(fd, randbuf, s) != s)
+						wperror("ERROR writing file");
 					count -= s;
 				}
 			}
@@ -374,6 +377,7 @@ void writeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req
 			}
 			close(fd);
 		}
+
 		auto size = element->getSize();
 		if (req.offset + req.count > size) {
 			element->setSize(req.offset + req.count);
