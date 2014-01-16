@@ -347,12 +347,10 @@ void writeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req
 			mode |= O_TRUNC;
 		}
 
-		int i, fd = -1;
+		int i, ret, fd = -1;
 		//try three times to open the file and then give up
 		for (i = 0; i < 3; ++i) {
-			if ((fd = open(path.c_str(), mode, S_IRUSR | S_IWUSR)) != -1)
-				break;
-			if (errno != ENOSPC)
+			if ((fd = open(path.c_str(), mode, S_IRUSR | S_IWUSR)) != -1 || errno != ENOSPC)
 				break;
 			sleep(10);
 		}
@@ -367,7 +365,14 @@ void writeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req
 				uint32_t count = req.count;
 				while (count > 0) {
 					auto s = min((uint32_t) RANDBUF_SIZE, count);
-					if (write(fd, randbuf, s) != s)
+
+					//try three times to write the file and then give up
+					for (i = 0; i < 3; ++i) {
+						if ((ret = write(fd, randbuf, s)) == s || errno != ENOSPC)
+							break;
+						sleep(10);
+					}
+					if (ret != s)
 						wperror("ERROR writing file");
 					count -= s;
 				}

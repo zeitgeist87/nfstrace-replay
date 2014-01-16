@@ -53,9 +53,7 @@ void NFSTree::writeToSize(uint64_t size) {
 	int i, fd = -1;
 	//try three times to open the file and then give up
 	for (i = 0; i < 3; ++i) {
-		if ((fd = open(calcPath().c_str(), mode, S_IRUSR | S_IWUSR)) != -1)
-			break;
-		if (errno != ENOSPC)
+		if ((fd = open(calcPath().c_str(), mode, S_IRUSR | S_IWUSR)) != -1 || errno != ENOSPC)
 			break;
 		sleep(10);
 	}
