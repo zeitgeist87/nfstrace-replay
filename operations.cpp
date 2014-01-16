@@ -370,13 +370,15 @@ void writeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req
 
 					//try three times to write the file and then give up
 					for (i = 0; i < 3; ++i) {
-						if ((ret = write(fd, randbuf, s)) == s || errno != ENOSPC)
+						if ((ret = write(fd, randbuf, s)) > -1 || errno != ENOSPC)
 							break;
 						sleep(10);
 					}
-					if (ret != s)
+					if (ret == -1) {
 						wperror("ERROR writing file");
-					count -= s;
+						break;
+					}
+					count -= ret;
 				}
 			}
 			if (datasync){
