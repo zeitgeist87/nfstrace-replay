@@ -1,19 +1,19 @@
 /*
+ * nfstrace-replay - Small command line tool to replay file system traces
+ * Copyright (C) 2014  Andreas Rohner
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  Created on: 09.06.2013
- *      Author: Andreas Rohner
  */
 
 #include <string>
@@ -27,7 +27,8 @@
 #include "nfstree.h"
 #include "nfsreplay.h"
 
-void NFSTree::writeToSize(uint64_t size) {
+void NFSTree::writeToSize(uint64_t size)
+{
 	auto curr = getSize();
 
 	if (created) {
@@ -43,12 +44,11 @@ void NFSTree::writeToSize(uint64_t size) {
 		mode |= O_TRUNC;
 	}
 
-	if(parent && !parent->isCreated()){
+	if (parent && !parent->isCreated()) {
 		parent->makePath();
 	}
 
 	setSize(size);
-
 
 	int i, fd = -1;
 	//try three times to open the file and then give up
@@ -58,7 +58,7 @@ void NFSTree::writeToSize(uint64_t size) {
 		sleep(10);
 	}
 
-	if (fd == -1){
+	if (fd == -1) {
 		wperror("ERROR opening file");
 		return;
 	}
@@ -83,39 +83,44 @@ void NFSTree::writeToSize(uint64_t size) {
 
 
 
-NFSTree *NFSTree::getChild(const std::string &name) {
+NFSTree *NFSTree::getChild(const std::string &name)
+{
 	auto it = children.find(name);
 	if (it == children.end())
 		return 0;
 	return it->second;
 }
 
-bool NFSTree::isChildCreated() {
-	for(auto it = children.begin(), e = children.end(); it != e; ++it){
+bool NFSTree::isChildCreated()
+{
+	for (auto it = children.begin(), e = children.end(); it != e; ++it) {
 		if (it->second->isCreated())
 			return true;
 	}
 	return false;
 }
 
-void NFSTree::clearEmptyDir(){
+void NFSTree::clearEmptyDir()
+{
 	NFSTree *el = this;
-	do{
-		if(el->isCreated() && (!el->hasChildren() || !el->isChildCreated())){
-			if(remove(el->calcPath().c_str())){
+	do {
+		if (el->isCreated()
+				&& (!el->hasChildren() || !el->isChildCreated())) {
+			if (remove(el->calcPath().c_str())) {
 				wperror("ERROR recursive remove");
 				break;
-			}else{
+			} else {
 				el->setCreated(false);
 				el = el->getParent();
 			}
 		} else {
 			break;
 		}
-	}while(el);
+	} while (el);
 }
 
-void NFSTree::removeChild(NFSTree *child) {
+void NFSTree::removeChild(NFSTree *child)
+{
 	if (!child || this == child || fh == child->fh)
 		throw "removeChild: Wrong parameter";
 
@@ -127,7 +132,8 @@ void NFSTree::removeChild(NFSTree *child) {
 	child->parent = 0;
 }
 
-void NFSTree::addChild(NFSTree *child) {
+void NFSTree::addChild(NFSTree *child)
+{
 	if (!child || this == child || fh == child->fh)
 		throw "addChild: Wrong parameter";
 
@@ -147,7 +153,8 @@ void NFSTree::addChild(NFSTree *child) {
 	child->parent = this;
 }
 
-void NFSTree::deleteChild(NFSTree *child) {
+void NFSTree::deleteChild(NFSTree *child)
+{
 	if (!child || !child->children.empty())
 		throw "deleteChild: Wrong parameter or children not empty";
 
@@ -156,7 +163,8 @@ void NFSTree::deleteChild(NFSTree *child) {
 	delete child;
 }
 
-void NFSTree::setName(const std::string &name) {
+void NFSTree::setName(const std::string &name)
+{
 	if (name.empty()) {
 		throw "setName: Empty name not allowed";
 	}
@@ -171,7 +179,8 @@ void NFSTree::setName(const std::string &name) {
 	this->name = name;
 }
 
-std::string NFSTree::calcPath() {
+std::string NFSTree::calcPath()
+{
 	char buffer[4096];
 	char *pos = buffer + 4096;
 	NFSTree *node = this;
@@ -186,10 +195,10 @@ std::string NFSTree::calcPath() {
 
 		--pos;
 		*pos = '/';
-	}while(node);
+	} while (node);
 
 	++pos;
-	return std::string(pos, (size_t)(buffer + 4096 - pos));
+	return std::string(pos, (size_t) (buffer + 4096 - pos));
 }
 
 /*std::string NFSTree::calcPath() {
@@ -203,7 +212,8 @@ std::string NFSTree::calcPath() {
 	return path;
 }*/
 
-static size_t makePathHelper(NFSTree *node, char *buffer, int mode, int print){
+static size_t makePathHelper(NFSTree *node, char *buffer, int mode, int print)
+{
 	if (!node)
 		return 0;
 
@@ -232,7 +242,8 @@ static size_t makePathHelper(NFSTree *node, char *buffer, int mode, int print){
 	return pos;
 }
 
-std::string NFSTree::makePath(int mode) {
+std::string NFSTree::makePath(int mode)
+{
 	if (isCreated())
 		return calcPath();
 

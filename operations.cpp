@@ -1,19 +1,19 @@
 /*
+ * nfstrace-replay - Small command line tool to replay file system traces
+ * Copyright (C) 2014  Andreas Rohner
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  Created on: 09.06.2013
- *      Author: Andreas Rohner
  */
 
 #include <string>
@@ -31,34 +31,37 @@
 
 using namespace std;
 
-static void createMoveElement(NFSTree *element, NFSTree *parent, const string &name){
+static void createMoveElement(NFSTree *element, NFSTree *parent,
+		const string &name)
+{
 
-	if(element->isCreated()){
+	if (element->isCreated()) {
 		string oldpath = element->calcPath();
 		string newpath = parent->makePath() + '/' + name;
 
 		//move element to new parent
 		if (rename(oldpath.c_str(), newpath.c_str())) {
 			wperror("ERROR moving");
-		}else{
-			if(oldpath != newpath)
+		} else {
+			if (oldpath != newpath)
 				remove(oldpath.c_str());
 		}
 	}
 
 	//move element to new parent
 	NFSTree *oldparent = element->getParent();
-	if(oldparent)
+	if (oldparent)
 		oldparent->removeChild(element);
 	element->setName(name);
 	parent->addChild(element);
-	if(oldparent)
+	if (oldparent)
 		oldparent->clearEmptyDir();
 }
 
-static void createChangeFType(NFSTree *element, FType ftype){
+static void createChangeFType(NFSTree *element, FType ftype)
+{
 	if (ftype == DIR && !element->isDir()) {
-		if(element->isCreated()){
+		if (element->isCreated()) {
 			if (remove(element->calcPath().c_str())) {
 				wperror("ERROR changing type");
 			} else {
@@ -68,7 +71,7 @@ static void createChangeFType(NFSTree *element, FType ftype){
 
 		element->setDir(true);
 	} else if (ftype != DIR && element->isDir()) {
-		if(element->isCreated()){
+		if (element->isCreated()) {
 			if (remove(element->calcPath().c_str())) {
 				wperror("ERROR changing type");
 			} else {
@@ -80,12 +83,13 @@ static void createChangeFType(NFSTree *element, FType ftype){
 	}
 }
 
-void createLookup(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
-		const NFSFrame &res) {
+void createLookup(unordered_multimap<NFS_ID, NFSTree *> &fhmap,
+		const NFSFrame &req, const NFSFrame &res)
+{
 
-	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(res.fh) || req.fh == res.fh || req.name.empty()
-			|| (res.ftype != REG && res.ftype != DIR) || req.name == "."
-			|| req.name == "..")
+	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(res.fh) || req.fh == res.fh
+			|| req.name.empty() || (res.ftype != REG && res.ftype != DIR)
+			|| req.name == "." || req.name == "..")
 		return;
 
 	auto it = fhmap.find(req.fh);
@@ -107,7 +111,8 @@ void createLookup(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &
 			if (res.ftype == DIR && it != fhmap.end()) {
 				//no duplicate id's allowed
 				//rename to handle name
-				createMoveElement(element, parent, element->getHandleName());
+				createMoveElement(element, parent,
+						  element->getHandleName());
 				//move in correct element
 				element = it->second;
 				createMoveElement(element, parent, req.name);
@@ -116,7 +121,8 @@ void createLookup(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &
 				removeFromMap(fhmap, element);
 
 				element->setHandle(res.fh);
-				fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh, element));
+				fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh,
+					     element));
 			}
 		}
 
@@ -134,9 +140,11 @@ void createLookup(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &
 				element->setLastAccess(res.time);
 			} else {
 				//element does not exist create it
-				element = new NFSTree(res.fh, req.name, res.time);
+				element = new NFSTree(res.fh, req.name,
+						res.time);
 				element->setDir(true);
-				fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh, element));
+				fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh,
+					     element));
 				parent->addChild(element);
 			}
 		} else {
@@ -145,22 +153,24 @@ void createLookup(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &
 			if (it != fhmap.end()) {
 				element = it->second;
 
-                if(element->getParent()){
-                	//linked file has the same handle but different names
-					NFSTree *el = new NFSTree(element->getHandle(), req.name, res.time);
+				if (element->getParent()) {
+					//linked file has the same handle but different names
+					NFSTree *el = new NFSTree(
+							element->getHandle(),
+							req.name, res.time);
 					el->setDir(false);
 					parent->addChild(el);
 					fhmap.insert(pair<NFS_ID, NFSTree *>(element->getHandle(), el));
 				}else{
-				    //file has no parent move it to new position
-					if(element->isCreated()){
+					//file has no parent move it to new position
+					if (element->isCreated()) {
 						string oldpath = element->calcPath();
 						string newpath = parent->makePath() + '/' + req.name;
 
 						if (rename(oldpath.c_str(), newpath.c_str())) {
 							wperror("ERROR moving");
-						}else{
-							if(oldpath != newpath)
+						} else {
+							if (oldpath != newpath)
 								remove(oldpath.c_str());
 						}
 					}
@@ -170,7 +180,7 @@ void createLookup(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &
 					createChangeFType(element, res.ftype);
 				}
 
-                element->setLastAccess(res.time);
+				element->setLastAccess(res.time);
 			} else {
 				//element does not exist create it
 				element = new NFSTree(res.fh, req.name, res.time);
@@ -182,12 +192,13 @@ void createLookup(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &
 	}
 }
 
-void createFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
-		const NFSFrame &res) {
+void createFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap,
+		const NFSFrame &req, const NFSFrame &res)
+{
 
-	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(res.fh) || req.fh == res.fh || req.name.empty()
-			|| (res.ftype != REG && res.ftype != DIR) || req.name == "."
-			|| req.name == "..")
+	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(res.fh) || req.fh == res.fh
+			|| req.name.empty() || (res.ftype != REG && res.ftype != DIR)
+			|| req.name == "." || req.name == "..")
 		return;
 
 	auto it = fhmap.find(req.fh);
@@ -225,13 +236,11 @@ void createFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 		}
 
 		//write file to new size
-		if (res.operation == CREATE) {
+		if (res.operation == CREATE)
 			element->setSize(0);
-		}
 
-		if (res.ftype != DIR) {
+		if (res.ftype != DIR)
 			element->writeToSize(res.size);
-		}
 
 		createChangeFType(element, res.ftype);
 		element->setLastAccess(res.time);
@@ -257,11 +266,10 @@ void createFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 			if (it != fhmap.end()) {
 				element = it->second;
 				if (element->isCreated()) {
-					if (remove(element->calcPath().c_str())) {
+					if (remove(element->calcPath().c_str()))
 						wperror("ERROR creating element");
-					} else {
+					else
 						element->setCreated(false);
-					}
 				}
 
 				NFSTree *oldparent = element->getParent();
@@ -292,8 +300,9 @@ void createFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 	}
 }
 
-void removeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
-		const NFSFrame &res) {
+void removeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap,
+		const NFSFrame &req, const NFSFrame &res)
+{
 	if (NFS_ID_EMPTY(req.fh) || req.name.empty())
 		return;
 
@@ -302,12 +311,11 @@ void removeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 		NFSTree *dir = it->second;
 		NFSTree *element = dir->getChild(req.name);
 		if (element && element->isDeletable()) {
-			if(element->isCreated()){
+			if (element->isCreated()) {
 				string path = element->calcPath();
 
-				if (remove(path.c_str())) {
+				if (remove(path.c_str()))
 					wperror("ERROR removing");
-				}
 			}
 
 			removeFromMap(fhmap, element);
@@ -318,8 +326,10 @@ void removeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 	}
 }
 
-void writeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
-		const NFSFrame &res, const char *randbuf, const bool datasync) {
+void writeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap,
+		const NFSFrame &req, const NFSFrame &res, const char *randbuf,
+		const bool datasync)
+{
 	if (NFS_ID_EMPTY(req.fh))
 		return;
 
@@ -336,28 +346,27 @@ void writeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req
 			element->setLastAccess(res.time);
 		}
 
-		if(element->getParent() && !element->getParent()->isCreated()){
+		if (element->getParent() && !element->getParent()->isCreated())
 			element->getParent()->makePath();
-		}
 
 		string path = element->calcPath();
 
 		int mode = O_RDWR | O_CREAT;
-		if (element->getSize() == 0) {
+		if (element->getSize() == 0)
 			mode |= O_TRUNC;
-		}
 
 		int i, fd = -1;
 		ssize_t ret = 0;
 
 		//try three times to open the file and then give up
 		for (i = 0; i < 3; ++i) {
-			if ((fd = open(path.c_str(), mode, S_IRUSR | S_IWUSR)) != -1 || errno != ENOSPC)
+			if ((fd = open(path.c_str(), mode, S_IRUSR | S_IWUSR))
+					!= -1 || errno != ENOSPC)
 				break;
 			sleep(10);
 		}
 
-		if (fd == -1){
+		if (fd == -1) {
 			wperror("ERROR opening file");
 		} else {
 			element->setCreated(true);
@@ -370,7 +379,7 @@ void writeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req
 
 					//try three times to write the file and then give up
 					for (i = 0; i < 3; ++i) {
-						if ((ret = write(fd, randbuf, s)) > -1 || errno != ENOSPC)
+						if ((ret = write(fd, randbuf, s)) > -1|| errno != ENOSPC)
 							break;
 						sleep(10);
 					}
@@ -381,23 +390,24 @@ void writeFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req
 					count -= ret;
 				}
 			}
-			if (datasync){
+			if (datasync) {
 				fdatasync(fd);
 			}
 			close(fd);
 		}
 
 		auto size = element->getSize();
-		if (req.offset + req.count > size) {
+		if (req.offset + req.count > size)
 			element->setSize(req.offset + req.count);
-		}
 	}
 }
 
-void renameFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
-		const NFSFrame &res) {
+void renameFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap,
+		const NFSFrame &req, const NFSFrame &res)
+{
 	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(req.fh2) || req.name.empty()
-			|| req.name2.empty() || (req.fh == req.fh2 && req.name == req.name2))
+			|| req.name2.empty()
+			|| (req.fh == req.fh2 && req.name == req.name2))
 		return;
 
 	auto it = fhmap.find(req.fh);
@@ -423,22 +433,23 @@ void renameFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 			fhmap.insert(pair<NFS_ID, NFSTree *>(req.fh2, dir2));
 		}
 		NFSTree *el2 = dir2->getChild(req.name2);
-		if ((!el2 || el2->isDeletable()) && el!=el2) {
-			if(el->isCreated()){
+		if ((!el2 || el2->isDeletable()) && el != el2) {
+			if (el->isCreated()) {
 				string oldpath = el->calcPath();
-				string newpath = dir2->makePath() + '/' + req.name2;
+				string newpath = dir2->makePath() + '/'
+						+ req.name2;
 
 				if (rename(oldpath.c_str(), newpath.c_str())) {
 					wperror("ERROR renaming");
 				} else {
-					if(oldpath != newpath)
+					if (oldpath != newpath)
 						remove(oldpath.c_str());
 				}
 			}
 
 			//target already exists and must be deleted cause it gets overwritten
 			if (el2) {
-				if(el2->isCreated()){
+				if (el2->isCreated()) {
 					el->setCreated(true);
 				}
 				removeFromMap(fhmap, el2);
@@ -455,8 +466,9 @@ void renameFile(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 	}
 }
 
-void createLink(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
-		const NFSFrame &res) {
+void createLink(unordered_multimap<NFS_ID, NFSTree *> &fhmap,
+		const NFSFrame &req, const NFSFrame &res)
+{
 	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(req.fh2) || req.name.empty())
 		return;
 
@@ -478,7 +490,7 @@ void createLink(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 		NFSTree *element = targetdir->getChild(req.name);
 		if ((!element || element->isDeletable()) && element != srcfile) {
 			if (element) {
-				if (element->isCreated()){
+				if (element->isCreated()) {
 					string path = element->calcPath();
 					if (remove(path.c_str())) {
 						wperror("ERROR removing");
@@ -490,7 +502,7 @@ void createLink(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 			}
 			string oldpath;
 			string newpath;
-			if(srcfile->isCreated()){
+			if (srcfile->isCreated()) {
 				oldpath = srcfile->calcPath();
 				newpath = targetdir->makePath() + '/' + req.name;
 			}
@@ -501,20 +513,21 @@ void createLink(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &re
 			targetdir->addChild(el);
 			fhmap.insert(pair<NFS_ID, NFSTree *>(srcfile->getHandle(), el));
 
-			if(srcfile->isCreated()){
-				if (link(oldpath.c_str(), newpath.c_str())) {
+			if (srcfile->isCreated()) {
+				if (link(oldpath.c_str(), newpath.c_str()))
 					wperror("ERROR creating link");
-				}else{
+				else
 					el->setCreated(true);
-				}
 			}
 		}
 	}
 }
 
 void createSymlink(unordered_multimap<NFS_ID, NFSTree *> &fhmap,
-		const NFSFrame &req, const NFSFrame &res) {
-	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(res.fh) || req.name.empty() || req.name2.empty())
+		const NFSFrame &req, const NFSFrame &res)
+{
+	if (NFS_ID_EMPTY(req.fh) || NFS_ID_EMPTY(res.fh) || req.name.empty()
+			|| req.name2.empty())
 		return;
 
 	NFSTree *dir;
@@ -532,7 +545,7 @@ void createSymlink(unordered_multimap<NFS_ID, NFSTree *> &fhmap,
 	NFSTree *element = dir->getChild(req.name);
 	if (!element || element->isDeletable()) {
 		if (element) {
-			if(element->isCreated()){
+			if (element->isCreated()) {
 				string path = element->calcPath();
 				if (remove(path.c_str())) {
 					wperror("ERROR removing");
@@ -548,21 +561,20 @@ void createSymlink(unordered_multimap<NFS_ID, NFSTree *> &fhmap,
 		dir->addChild(el);
 		fhmap.insert(pair<NFS_ID, NFSTree *>(res.fh, el));
 
-		if(dir->isCreated()){
+		if (dir->isCreated()) {
 			string path = dir->makePath() + '/' + req.name;
 
-			if (symlink(req.name2.c_str(), path.c_str())) {
+			if (symlink(req.name2.c_str(), path.c_str()))
 				wperror("ERROR creating symlink");
-			} else {
+			else
 				el->setCreated(true);
-			}
 		}
 	}
 }
 
-
 void getAttr(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
-		const NFSFrame &res) {
+		const NFSFrame &res)
+{
 	if (NFS_ID_EMPTY(req.fh))
 		return;
 
@@ -571,19 +583,19 @@ void getAttr(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		NFSTree *element = it->second;
 		element->setLastAccess(res.time);
 
-		if(element->isCreated()){
+		if (element->isCreated()) {
 			string path = element->calcPath();
 			struct stat buf;
 
-			if (lstat(path.c_str(), &buf)) {
+			if (lstat(path.c_str(), &buf))
 				wperror("ERROR getting attributes");
-			}
 		}
 	}
 }
 
 void setAttr(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
-		const NFSFrame &res) {
+		const NFSFrame &res)
+{
 	if (NFS_ID_EMPTY(req.fh))
 		return;
 
@@ -592,28 +604,24 @@ void setAttr(unordered_multimap<NFS_ID, NFSTree *> &fhmap, const NFSFrame &req,
 		NFSTree *element = it->second;
 		element->setLastAccess(res.time);
 
-		if(element->isCreated()){
+		if (element->isCreated()) {
 			string path = element->calcPath();
 
-			if (req.mode
-					&& chmod(path.c_str(),
-							S_IXUSR | S_IRUSR | S_IWUSR | req.mode)) {
+			if (req.mode && chmod(path.c_str(), S_IXUSR | S_IRUSR | S_IWUSR | req.mode))
 				wperror("ERROR setting attributes");
-			}
 
 			/* too many wrong values in the traces e.g. > 20 TB */
 			/*if (req.size_occured) {
-				element->writeToSize(req.size);
-			}*/
+			 element->writeToSize(req.size);
+			 }*/
 
 			if (req.atime || req.mtime) {
 				struct utimbuf buf;
 				buf.actime = req.atime;
 				buf.modtime = req.mtime;
 
-				if (utime(path.c_str(), &buf)) {
+				if (utime(path.c_str(), &buf))
 					wperror("ERROR setting mtime and atime");
-				}
 			}
 		}
 	}

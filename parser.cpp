@@ -1,19 +1,19 @@
 /*
+ * nfstrace-replay - Small command line tool to replay file system traces
+ * Copyright (C) 2014  Andreas Rohner
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  Created on: 09.06.2013
- *      Author: Andreas Rohner
  */
 
 #include <map>
@@ -23,24 +23,26 @@
 
 using namespace std;
 
-struct CompareCStrings
-{
-    bool operator()(const char* lhs, const char* rhs) const {
-        return std::strcmp(lhs, rhs) < 0;
-    }
+struct CompareCStrings {
+	bool operator()(const char* lhs, const char* rhs) const
+	{
+		return std::strcmp(lhs, rhs) < 0;
+	}
 };
 
 static map<const char *, Operation, CompareCStrings> opmap;
 
-inline static uint32_t parseClientId(const char *token){
+inline static uint32_t parseClientId(const char *token)
+{
 	char *pEnd;
-	uint32_t first=strtoul(token,&pEnd,16);
+	uint32_t first = strtoul(token, &pEnd, 16);
 	pEnd++;
-	uint32_t second=strtoul(pEnd,NULL,16);
+	uint32_t second = strtoul(pEnd, NULL, 16);
 	return (first << 16) | second;
 }
 
-inline static void initOpmap() {
+inline static void initOpmap()
+{
 	opmap["null"] = NULLOP;
 	opmap["getattr"] = GETATTR;
 	opmap["setattr"] = SETATTR;
@@ -66,23 +68,25 @@ inline static void initOpmap() {
 	opmap["commit"] = COMMIT;
 }
 
-inline static Operation parseOp(char *op){
+inline static Operation parseOp(char *op)
+{
 
-	if(opmap.size()==0)
+	if (opmap.size() == 0)
 		initOpmap();
 
-	char *pos=op;
-	while(*pos!=0){
-		*pos=tolower(*pos);
+	char *pos = op;
+	while (*pos != 0) {
+		*pos = tolower(*pos);
 		pos++;
 	}
-	auto it=opmap.find(op);
-	if(it!=opmap.end())
+	auto it = opmap.find(op);
+	if (it != opmap.end())
 		return it->second;
 	return NULLOP;
 }
 
-void parseFrame(NFSFrame &frame, char *line) {
+void parseFrame(NFSFrame &frame, char *line)
+{
 	char *pos = line;
 	char *token = line;
 	char *src = NULL;
@@ -126,54 +130,48 @@ void parseFrame(NFSFrame &frame, char *line) {
 		case 4:
 			//protocol
 			if (*token == 'R') {
-				if (token[1] == '2') {
+				if (token[1] == '2')
 					frame.protocol = R2;
-				} else {
+				else
 					frame.protocol = R3;
-				}
 
 				frame.client = parseClientId(dest);
 			} else if (*token == 'C') {
-				if (token[1] == '2') {
+				if (token[1] == '2')
 					frame.protocol = C2;
-				} else {
+				else
 					frame.protocol = C3;
-				}
+
 				frame.client = parseClientId(src);
 			}
 			break;
 		case 5:
 			frame.xid = strtoul(token, NULL, 16);
 			break;
-		/*case 6:
-		 	 // cannot use opcode cause it is different for R2 R3
-			frame.operation = (Operation) strtoul(token, NULL, 16);
-			break;*/
+			/*case 6:
+			 // cannot use opcode cause it is different for R2 R3
+			 frame.operation = (Operation) strtoul(token, NULL, 16);
+			 break;*/
 		case 7:
 			frame.operation = parseOp(token);
 			break;
 		case 8:
 			if (frame.protocol == R2 || frame.protocol == R3) {
-				if (!strcmp(token, "OK")) {
+				if (!strcmp(token, "OK"))
 					frame.status = FOK;
-				} else {
+				else
 					frame.status = FERROR;
-				}
 			}
 			break;
 		}
 
-		if (last_token
-				&& (count > 8
-						|| (count == 8
-								&& (frame.protocol == R2 || frame.protocol == R3)))) {
+		if (last_token && (count > 8 || (count == 8 && (frame.protocol == R2 || frame.protocol == R3)))) {
 
-			if (!frame.count
-					&& (!strcmp(last_token, "count")
-							|| !strcmp(last_token, "tcount"))) {
+			if (!frame.count && (!strcmp(last_token, "count")
+					|| !strcmp(last_token, "tcount"))) {
 				frame.count = strtoul(token, NULL, 16);
-			} else if (frame.name.empty()
-					&& (!strcmp(last_token, "name") || !strcmp(last_token, "fn"))) {
+			} else if (frame.name.empty() && (!strcmp(last_token, "name")
+					|| !strcmp(last_token, "fn"))) {
 				frame.name = token;
 			} else if (!frame.size_occured && !strcmp(last_token, "size")) {
 				//only read first size
@@ -184,54 +182,53 @@ void parseFrame(NFSFrame &frame, char *line) {
 				frame.ftype = (FType) atoi(token);
 			} else if (!strcmp(token, "LONGPKT")) {
 				frame.truncated = true;
-			} else if (!frame.offset
-					&& (!strcmp(last_token, "off")
-							|| !strcmp(last_token, "offset"))) {
+			} else if (!frame.offset && (!strcmp(last_token, "off")
+					|| !strcmp(last_token, "offset"))) {
 				frame.offset = strtoull(token, NULL, 16);
 			} else if (NFS_ID_EMPTY(frame.fh) && !strcmp(last_token, "fh")) {
-				#ifdef SMALL_NFS_ID
-					/*
-					 * the nfs_handle is usually 64 bytes long,
-					 * but most of it is constant, because the device id
-					 * and other constants rarely change
-					 *
-					 * the constant parts always add up to the same value
-					 * the variable parts like inode number should fit into 64 bits
-					 */
-					char tmp;
-					char *tmp2, *tokptr = token;
-					frame.fh = 0;
+#ifdef SMALL_NFS_ID
+				/*
+				 * the nfs_handle is usually 64 bytes long,
+				 * but most of it is constant, because the device id
+				 * and other constants rarely change
+				 *
+				 * the constant parts always add up to the same value
+				 * the variable parts like inode number should fit into 64 bits
+				 */
+				char tmp;
+				char *tmp2, *tokptr = token;
+				frame.fh = 0;
 
-					while (*tokptr) {
-						tmp = tokptr[16];
-						tokptr[16] = 0;
-						frame.fh += strtoull(tokptr, &tmp2, 16);
-						tokptr[16] = tmp;
-						tokptr = tmp2;
-					}
-				#else
-					frame.fh = token;
-				#endif
+				while (*tokptr) {
+					tmp = tokptr[16];
+					tokptr[16] = 0;
+					frame.fh += strtoull(tokptr, &tmp2, 16);
+					tokptr[16] = tmp;
+					tokptr = tmp2;
+				}
+#else
+				frame.fh = token;
+#endif
 			} else if (NFS_ID_EMPTY(frame.fh2) && !strcmp(last_token, "fh2")) {
-				#ifdef SMALL_NFS_ID
-					char tmp;
-					char *tmp2, *tokptr = token;
-					frame.fh2 = 0;
+#ifdef SMALL_NFS_ID
+				char tmp;
+				char *tmp2, *tokptr = token;
+				frame.fh2 = 0;
 
-					while (*tokptr) {
-						tmp = tokptr[16];
-						tokptr[16] = 0;
-						frame.fh2 += strtoull(tokptr, &tmp2, 16);
-						tokptr[16] = tmp;
-						tokptr = tmp2;
-					}
-				#else
-					frame.fh2 = token;
-				#endif
-			} else if (frame.name2.empty()
-					&& (!strcmp(last_token, "fn2")
-							|| !strcmp(last_token, "name2")
-							|| !strcmp(last_token, "sdata"))) {
+				while (*tokptr) {
+					tmp = tokptr[16];
+					tokptr[16] = 0;
+					frame.fh2 += strtoull(tokptr, &tmp2,
+							16);
+					tokptr[16] = tmp;
+					tokptr = tmp2;
+				}
+#else
+				frame.fh2 = token;
+#endif
+			} else if (frame.name2.empty() && (!strcmp(last_token, "fn2")
+					|| !strcmp(last_token, "name2")
+					|| !strcmp(last_token, "sdata"))) {
 				frame.name2 = token;
 			} else if (!frame.mode && !strcmp(last_token, "mode")) {
 				frame.mode = 0x1FF & strtoul(token, NULL, 16);
