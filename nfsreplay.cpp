@@ -363,7 +363,7 @@ static int parseParams(int argc, char **argv)
 			break;
 		case 'h':
 			printf(NFSREPLAY_USAGE, argv[0]);
-			return EXIT_SUCCESS;
+			return EXIT_FAILURE;
 		case 't':
 			optDisplayTime = true;
 			break;
@@ -577,7 +577,8 @@ int main(int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 	} else {
-		input = stdin;
+		printf(NFSREPLAY_USAGE, argv[0]);
+		return EXIT_FAILURE;
 	}
 
 	char line[1024];
