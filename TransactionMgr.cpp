@@ -115,3 +115,52 @@ void TransactionMgr::gc(int64_t time) {
 		transactions.erase(*it);
 	}
 }
+
+int TransactionMgr::process(Frame *frame) {
+	int64_t time = frame->time;
+
+	//sync every 10 minutes
+	if (!sett.noSync && last_sync + sett.syncMinutes * 60 < time) {
+		if (!fhmap.sync())
+			logger.error("Error syncing file system");
+
+		last_sync = time;
+	}
+
+	if (sett.enableGC && ((last_gc + 60 * 60 * 12 < time
+				&& fhmap.size() > GC_NODE_THRESHOLD)
+				|| fhmap.size() > GC_NODE_HARD_THRESHOLD)) {
+		logger.log("RUNNING GC");
+
+		fhmap.gc(time);
+		gc(time);
+
+		last_gc = time;
+	}
+
+	if (sett.startTime < 0 && sett.startAfterDays > 0)
+		sett.startTime = time + (sett.startAfterDays * 24 * 60 * 60);
+
+	if (sett.startTime == -1 || sett.startTime < time) {
+		if (frame->protocol == C3 || frame->protocol == C2) {
+			stats.requestsProcessed++;
+			processRequest(frame);
+		} else if (frame->protocol == R3 || frame->protocol == R2) {
+			stats.responsesProcessed++;
+			processResponse(frame);
+		}
+	} else
+		delete frame;
+
+	if (sett.endTime < 0 && sett.endAfterDays > 0) {
+		if (sett.startTime > 0)
+			sett.endTime = sett.startTime + (sett.endAfterDays * 24 * 60 * 60);
+		else
+			sett.endTime = time + (sett.endAfterDays * 24 * 60 * 60);
+	}
+
+	if (sett.endTime != -1 && sett.endTime < time)
+		return 1;
+
+	return 0;
+}

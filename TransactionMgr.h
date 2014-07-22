@@ -33,19 +33,21 @@ class TransactionMgr {
 private:
 	Settings &sett;
 	Stats &stats;
-	FileSystemMap &fhmap;
+	FileSystemMap fhmap;
 	Logger &logger;
 	//map transaction ids to frames
 	std::unordered_map<uint32_t, const Frame *> transactions;
+
+	int64_t last_sync = 0;
+	int64_t last_gc = 0;
 
 	void processRequest(const Frame *req);
 	void processResponse(const Frame *res);
 
 public:
-	TransactionMgr(Settings &sett, Stats &stats, FileSystemMap &fhmap,
-			Logger &logger) : sett(sett), stats(stats),
-			fhmap(fhmap), logger(logger)
-	{
+	TransactionMgr(Settings &sett, Stats &stats, Logger &logger) :
+			sett(sett), stats(stats), fhmap(sett, stats, logger),
+			logger(logger) {
 
 	}
 	virtual ~TransactionMgr() {
@@ -54,16 +56,11 @@ public:
 		}
 	}
 
-	void process(Frame *frame) {
-		if (frame->protocol == C3 || frame->protocol == C2) {
-			stats.requestsProcessed++;
-			processRequest(frame);
-		} else if (frame->protocol == R3 || frame->protocol == R2) {
-			stats.responsesProcessed++;
-			processResponse(frame);
-		}
+	uint64_t size() {
+		return fhmap.size();
 	}
 
+	int process(Frame *frame);
 	void gc(int64_t time);
 };
 

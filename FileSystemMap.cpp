@@ -35,7 +35,6 @@ using namespace std;
 void FileSystemMap::createMoveElement(TreeNode *element, TreeNode *parent,
 		const string &name)
 {
-
 	if (element->isCreated()) {
 		string oldpath = element->calcPath();
 		string newpath = parent->makePath() + '/' + name;
@@ -508,7 +507,7 @@ void FileSystemMap::createLink(const Frame &req, const Frame &res)
 			fhmap.insert(pair<FileHandle, TreeNode *>(srcfile->getHandle(), el));
 
 			if (srcfile->isCreated()) {
-				if (link(oldpath.c_str(), newpath.c_str()))
+				if (link(oldpath.c_str(), newpath.c_str()) && errno != EEXIST)
 					logger.error("ERROR creating link");
 				else
 					el->setCreated(true);
@@ -557,7 +556,7 @@ void FileSystemMap::createSymlink(const Frame &req, const Frame &res)
 		if (dir->isCreated()) {
 			string path = dir->makePath() + '/' + req.name;
 
-			if (symlink(req.name2.c_str(), path.c_str()))
+			if (symlink(req.name2.c_str(), path.c_str()) && errno != EEXIST)
 				logger.error("ERROR creating symlink");
 			else
 				el->setCreated(true);

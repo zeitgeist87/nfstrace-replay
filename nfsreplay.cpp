@@ -253,9 +253,8 @@ int main(int argc, char **argv)
 	}
 
 	Logger logger;
-	FileSystemMap map(sett, stats, logger);
-	TransactionMgr trans(sett, stats, map, logger);
-	ConsoleDisplay disp(sett, stats, map, trans, logger);
+	TransactionMgr transMgr(sett, stats, logger);
+	ConsoleDisplay disp(sett, stats, transMgr, logger);
 	Parser parser;
 
 	try {
@@ -278,7 +277,10 @@ int main(int argc, char **argv)
 				pauseExecution = 0;
 			}
 
-			if (disp.process(frame))
+			stats.process(frame);
+			disp.process(frame);
+
+			if (transMgr.process(frame))
 				break;
 		}
 	} catch (exception &e) {

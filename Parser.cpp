@@ -26,9 +26,9 @@ Frame *Parser::parse(char *line)
 {
 	char *pos = line;
 	char *token = line;
-	char *src = NULL;
-	char *dest = NULL;
-	char *last_token = NULL;
+	char *src = 0;
+	char *dest = 0;
+	char *last_token = 0;
 	int count = 0;
 	bool eol = false;
 
@@ -112,8 +112,10 @@ Frame *Parser::parse(char *line)
 		count++;
 	}
 
-	if (frame->protocol == NOPROT)
-		throw TraceException("Parser: Invalid protocol detected");
+	if (frame->protocol == NOPROT) {
+		delete frame;
+		return 0;
+	}
 
 	return frame;
 }

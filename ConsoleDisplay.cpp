@@ -26,8 +26,8 @@
 #include "FileSystemMap.h"
 
 ConsoleDisplay::ConsoleDisplay(Settings &sett, Stats &stats,
-		FileSystemMap &fhmap, TransactionMgr &transMgr, Logger &logger) :
-		sett(sett), stats(stats), fhmap(fhmap), transMgr(transMgr)
+		TransactionMgr &transMgr, Logger &logger) :
+		sett(sett), stats(stats), transMgr(transMgr)
 {
 	initscr();
 	refresh();
@@ -57,7 +57,7 @@ ConsoleDisplay::ConsoleDisplay(Settings &sett, Stats &stats,
 	logger.setDisplay(this);
 }
 
-int ConsoleDisplay::process(Frame *frame) {
+void ConsoleDisplay::process(Frame *frame) {
 	int64_t time = frame->time;
 
 	//print out current time all 30 seconds
@@ -95,52 +95,11 @@ int ConsoleDisplay::process(Frame *frame) {
 			mvwprintw(debugWin, 9, 1, "Create operations: %lld",
 					stats.createOperations / 2);
 			mvwprintw(debugWin, 10, 1, "In Memory Nodes: %ld      ",
-				  fhmap.size());
+				  transMgr.size());
 
 			wrefresh(debugWin);
 		}
 
 		last_print = time;
 	}
-
-	//sync every 10 minutes
-	if (!sett.noSync && last_sync + sett.syncMinutes * 60 < time) {
-		if (!fhmap.sync())
-			error("Error syncing file system");
-
-		last_sync = time;
-	}
-
-	if (sett.enableGC && ((last_gc + 60 * 60 * 12 < time
-				&& fhmap.size() > GC_NODE_THRESHOLD)
-				|| fhmap.size() > GC_NODE_HARD_THRESHOLD)) {
-		wprintw(logWin, "RUNNING GC\n");
-		wrefresh(logWin);
-
-		fhmap.gc(time);
-		transMgr.gc(time);
-
-		last_gc = time;
-	}
-
-	stats.process(frame);
-
-	if (sett.startTime < 0 && sett.startAfterDays > 0)
-		sett.startTime = time + (sett.startAfterDays * 24 * 60 * 60);
-
-	if (sett.startTime == -1 || sett.startTime < time)
-		transMgr.process(frame);
-	else
-		delete frame;
-
-	if (sett.endTime < 0 && sett.endAfterDays > 0) {
-		if (sett.startTime > 0)
-			sett.endTime = sett.startTime + (sett.endAfterDays * 24 * 60 * 60);
-		else
-			sett.endTime =time + (sett.endAfterDays * 24 * 60 * 60);
-	}
-
-	if (sett.endTime != -1 && sett.endTime < time)
-		return 1;
-	return 0;
 }

@@ -33,7 +33,6 @@ class FileSystemMap;
 class ConsoleDisplay {
 	Settings &sett;
 	Stats &stats;
-	FileSystemMap &fhmap;
 	TransactionMgr &transMgr;
 
 	WINDOW *timeWin = 0;
@@ -42,11 +41,9 @@ class ConsoleDisplay {
 	WINDOW *logWin = 0;
 
 	int64_t last_print = 0;
-	int64_t last_sync = 0;
-	int64_t last_gc = 0;
 public:
-	ConsoleDisplay(Settings &sett, Stats &stats, FileSystemMap &fhmap,
-			TransactionMgr &transMgr, Logger &logger);
+	ConsoleDisplay(Settings &sett, Stats &stats, TransactionMgr &transMgr,
+			Logger &logger);
 
 	virtual ~ConsoleDisplay() {
 		destroy();
@@ -98,7 +95,7 @@ public:
 		return 0;
 	}
 
-	int process(Frame *frame);
+	void process(Frame *frame);
 };
 
 #endif /* CONSOLEDISPLAY_H_ */

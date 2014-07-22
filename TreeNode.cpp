@@ -220,11 +220,10 @@ static size_t makePathHelper(TreeNode *node, char *buffer, const int mode, Logge
 
 	buffer[pos] = 0;
 
-	if (!node->isCreated() && mkdir(buffer, mode)) {
+	if (!node->isCreated() && mkdir(buffer, mode) && errno != EEXIST)
 		logger->error("ERROR creating directory");
-	} else {
+	else
 		node->setCreated(true);
-	}
 
 	return pos;
 }
