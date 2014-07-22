@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <execinfo.h> //needed for bailout
+#include <curses.h>
 
 #include "Settings.h"
 #include "Stats.h"
@@ -269,8 +270,10 @@ int main(int argc, char **argv)
 				continue;
 
 			if (pauseExecution == 1) {
-				if (disp.pause())
+				if (disp.pause()) {
+					delete frame;
 					break;
+				}
 
 				pauseExecution = 0;
 			}

@@ -58,14 +58,16 @@ ConsoleDisplay::ConsoleDisplay(Settings &sett, Stats &stats,
 }
 
 int ConsoleDisplay::process(Frame *frame) {
+	int64_t time = frame->time;
+
 	//print out current time all 30 seconds
-	if (last_print + 30 < frame->time) {
+	if (last_print + 30 < time) {
 		if (sett.displayTime) {
-			time_t t = frame->time;
+			time_t t = time;
 			char *ts = ctime(&t);
 			ts[strlen(ts) - 1] = 0;
 
-			if (sett.startTime > frame->time)
+			if (sett.startTime > time)
 				mvwprintw(timeWin, 1, 1, "Fast forward: %s", ts);
 			else
 				mvwprintw(timeWin, 1, 1, "%s              ", ts);
@@ -98,45 +100,47 @@ int ConsoleDisplay::process(Frame *frame) {
 			wrefresh(debugWin);
 		}
 
-		last_print = frame->time;
+		last_print = time;
 	}
 
 	//sync every 10 minutes
-	if (!sett.noSync && last_sync + sett.syncMinutes * 60 < frame->time) {
+	if (!sett.noSync && last_sync + sett.syncMinutes * 60 < time) {
 		if (!fhmap.sync())
 			error("Error syncing file system");
 
-		last_sync = frame->time;
+		last_sync = time;
 	}
 
-	if (sett.enableGC && ((last_gc + 60 * 60 * 12 < frame->time
+	if (sett.enableGC && ((last_gc + 60 * 60 * 12 < time
 				&& fhmap.size() > GC_NODE_THRESHOLD)
 				|| fhmap.size() > GC_NODE_HARD_THRESHOLD)) {
 		wprintw(logWin, "RUNNING GC\n");
 		wrefresh(logWin);
 
-		fhmap.gc(frame->time);
-		transMgr.gc(frame->time);
+		fhmap.gc(time);
+		transMgr.gc(time);
 
-		last_gc = frame->time;
+		last_gc = time;
 	}
 
 	stats.process(frame);
 
 	if (sett.startTime < 0 && sett.startAfterDays > 0)
-		sett.startTime = frame->time + (sett.startAfterDays * 24 * 60 * 60);
+		sett.startTime = time + (sett.startAfterDays * 24 * 60 * 60);
 
-	if (sett.startTime == -1 || sett.startTime < frame->time)
+	if (sett.startTime == -1 || sett.startTime < time)
 		transMgr.process(frame);
+	else
+		delete frame;
 
 	if (sett.endTime < 0 && sett.endAfterDays > 0) {
 		if (sett.startTime > 0)
 			sett.endTime = sett.startTime + (sett.endAfterDays * 24 * 60 * 60);
 		else
-			sett.endTime =frame->time + (sett.endAfterDays * 24 * 60 * 60);
+			sett.endTime =time + (sett.endAfterDays * 24 * 60 * 60);
 	}
 
-	if (sett.endTime != -1 && sett.endTime < frame->time)
+	if (sett.endTime != -1 && sett.endTime < time)
 		return 1;
 	return 0;
 }
