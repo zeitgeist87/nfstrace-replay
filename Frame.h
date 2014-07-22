@@ -15,13 +15,12 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef PARSER_H_
-#define PARSER_H_
+
+#ifndef FRAME_H_
+#define FRAME_H_
 
 #include <string>
-#include <ctime>
-#include <stdint.h>
-#include "nfsreplay.h"
+#include "FileHandle.h"
 
 enum Protocol {
 	NOPROT, R2, C2, R3, C3
@@ -38,7 +37,7 @@ enum FType {
 	FIFO = 7
 };
 
-enum Operation {
+enum OpId {
 	NULLOP = 0,
 	GETATTR = 1,
 	SETATTR = 2,
@@ -67,15 +66,18 @@ enum Status {
 	FSENT = 0, FOK, FERROR
 };
 
-struct NFSFrame {
+class Frame {
+private:
+	bool size_occured;
+public:
 	Protocol protocol;
-	Operation operation;
+	OpId operation;
 	Status status;
 	//transaction id
 	uint32_t xid;
-	time_t time;
-	time_t atime;
-	time_t mtime;
+	int64_t time;
+	int64_t atime;
+	int64_t mtime;
 
 	uint32_t client;
 	bool truncated;
@@ -83,15 +85,15 @@ struct NFSFrame {
 	//attributes
 	uint32_t count;
 	uint64_t size;
-	bool size_occured;
 	uint32_t mode;
-	uint64_t offset;NFS_ID fh;
-	std::string name;NFS_ID fh2;
+	uint64_t offset;
+	FileHandle fh;
+	FileHandle fh2;
+	std::string name;
 	std::string name2;
 	FType ftype;
 
-	void clear()
-	{
+	Frame() {
 		ftype = NOFILE;
 		protocol = NOPROT;
 		operation = NULLOP;
@@ -108,24 +110,46 @@ struct NFSFrame {
 		mode = 0;
 		offset = 0;
 		name.clear();
-
 		name2.clear();
-
-#ifdef SMALL_NFS_ID
-		fh = 0;
-		fh2 = 0;
-#else
 		fh.clear();
 		fh2.clear();
-#endif
 	}
 
-	NFSFrame()
-	{
-		clear();
+	void setAttribute(const char *name, char *token) {
+		if (!count && (!strcmp(name, "count")
+				|| !strcmp(name, "tcount"))) {
+			count = strtoul(token, NULL, 16);
+		} else if (this->name.empty() && (!strcmp(name, "name")
+				|| !strcmp(name, "fn"))) {
+			this->name = token;
+		} else if (!size_occured && !strcmp(name, "size")) {
+			//only read first size
+			size_occured = true;
+			size = strtoull(token, NULL, 16);
+		} else if (ftype == NOFILE && !strcmp(name, "ftype")) {
+			//only read first ftype
+			ftype = (FType) atoi(token);
+		} else if (!strcmp(token, "LONGPKT")) {
+			truncated = true;
+		} else if (!offset && (!strcmp(name, "off")
+				|| !strcmp(name, "offset"))) {
+			offset = strtoull(token, NULL, 16);
+		} else if (fh.empty() && !strcmp(name, "fh")) {
+			fh = token;
+		} else if (fh2.empty() && !strcmp(name, "fh2")) {
+			fh2 = token;
+		} else if (name2.empty() && (!strcmp(name, "fn2")
+				|| !strcmp(name, "name2")
+				|| !strcmp(name, "sdata"))) {
+			name2 = token;
+		} else if (!mode && !strcmp(name, "mode")) {
+			mode = 0x1FF & strtoul(token, NULL, 16);
+		} else if (!atime && !strcmp(name, "atime")) {
+			atime = strtoull(token, NULL, 10);
+		} else if (!mtime && !strcmp(name, "mtime")) {
+			mtime = strtoull(token, NULL, 10);
+		}
 	}
 };
 
-void parseFrame(NFSFrame &frame, char *line);
-
-#endif /* PARSER_H_ */
+#endif /* FRAME_H_ */

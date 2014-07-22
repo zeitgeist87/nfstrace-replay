@@ -16,25 +16,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef GC_H_
-#define GC_H_
+#ifndef TRACEEXCEPTION_H_
+#define TRACEEXCEPTION_H_
 
-#include <unordered_map>
-#include <ctime>
-#include "nfsreplay.h"
-#include "parser.h"
-#include "nfstree.h"
+#include <execinfo.h>
+#include <exception>
 
-#define GC_NODE_THRESHOLD 1024 * 1024
-#define GC_NODE_HARD_THRESHOLD 4 * GC_NODE_THRESHOLD
-#define GC_DISCARD_HARD_THRESHOLD 60*5
-#define GC_DISCARD_THRESHOLD 60*60*24
-#define GC_MAX_TRANSACTIONTIME 5*60
+class TraceException : public std::exception {
+	std::string message;
+public:
+	TraceException(std::string msg) : message(msg) {
+		void *array[100];
+		int size = backtrace(array, 100);
 
-void removeFromMap(std::unordered_multimap<NFS_ID, NFSTree *> &fhmap,
-		NFSTree *element);
-void do_gc(std::unordered_multimap<NFS_ID, NFSTree *> &fhmap,
-		std::unordered_map<uint32_t, NFSFrame> &transactions,
-		time_t time);
+		char **strings = backtrace_symbols(array, size);
+		if (strings) {
+			for (int i = 1; i < size; ++i) {
+				message += '\n';
+				message += strings[i];
+			}
 
-#endif /* GC_H_ */
+			// the individual strings do not have to be freed
+			free(strings);
+		}
+	}
+
+	virtual const char* what() const throw() {
+		return message.c_str();
+	}
+};
+
+#endif /* TRACEEXCEPTION_H_ */

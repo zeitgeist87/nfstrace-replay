@@ -21,13 +21,15 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <cstring>
-#include <stdint.h>
 #include <sys/stat.h>
 #include <cerrno>
-#include "nfstree.h"
-#include "nfsreplay.h"
+#include "TreeNode.h"
+#include "Logger.h"
+#include "TraceException.h"
 
-void NFSTree::writeToSize(uint64_t size)
+Logger *TreeNode::logger;
+
+void TreeNode::writeToSize(uint64_t size)
 {
 	auto curr = getSize();
 
@@ -59,7 +61,7 @@ void NFSTree::writeToSize(uint64_t size)
 	}
 
 	if (fd == -1) {
-		wperror("ERROR opening file");
+		logger->error("ERROR opening file");
 		return;
 	}
 
@@ -68,22 +70,20 @@ void NFSTree::writeToSize(uint64_t size)
 	if (ftruncate(fd, size)) {
 		if (errno == EPERM) {
 			if (lseek(fd, size - 1, SEEK_SET) == -1) {
-				wperror("ERROR seeking file");
+				logger->error("ERROR seeking file");
 			} else {
 				if (write(fd, "w", 1) != 1)
-					wperror("ERROR writing file");
+					logger->error("ERROR writing file");
 			}
 		} else {
-			wperror("ERROR truncating file");
+			logger->error("ERROR truncating file");
 		}
 	}
 
 	close(fd);
 }
 
-
-
-NFSTree *NFSTree::getChild(const std::string &name)
+TreeNode *TreeNode::getChild(const std::string &name) const
 {
 	auto it = children.find(name);
 	if (it == children.end())
@@ -91,7 +91,7 @@ NFSTree *NFSTree::getChild(const std::string &name)
 	return it->second;
 }
 
-bool NFSTree::isChildCreated()
+bool TreeNode::isChildCreated() const
 {
 	for (auto it = children.begin(), e = children.end(); it != e; ++it) {
 		if (it->second->isCreated())
@@ -100,14 +100,14 @@ bool NFSTree::isChildCreated()
 	return false;
 }
 
-void NFSTree::clearEmptyDir()
+void TreeNode::clearEmptyDir()
 {
-	NFSTree *el = this;
+	TreeNode *el = this;
 	do {
 		if (el->isCreated()
 				&& (!el->hasChildren() || !el->isChildCreated())) {
 			if (remove(el->calcPath().c_str())) {
-				wperror("ERROR recursive remove");
+				logger->error("ERROR recursive remove");
 				break;
 			} else {
 				el->setCreated(false);
@@ -119,23 +119,23 @@ void NFSTree::clearEmptyDir()
 	} while (el);
 }
 
-void NFSTree::removeChild(NFSTree *child)
+void TreeNode::removeChild(TreeNode *child)
 {
 	if (!child || this == child || fh == child->fh)
-		throw "removeChild: Wrong parameter";
+		throw TraceException("TreeNode: Wrong parameter");
 
 	auto it = children.find(child->name);
 	if (it == children.end() || it->second != child)
-		throw "removeChild: Cannot find element";
+		throw TraceException("TreeNode: Cannot find element");
 
 	children.erase(it);
 	child->parent = 0;
 }
 
-void NFSTree::addChild(NFSTree *child)
+void TreeNode::addChild(TreeNode *child)
 {
 	if (!child || this == child || fh == child->fh)
-		throw "addChild: Wrong parameter";
+		throw TraceException("TreeNode: Wrong parameter");
 
 	auto it = children.find(child->name);
 	if (it != children.end()) {
@@ -143,52 +143,50 @@ void NFSTree::addChild(NFSTree *child)
 			//nothing to do
 			return;
 		}
-		throw "addChild: Element with same name already present";
+		throw TraceException("TreeNode: Element with same name already present");
 	}
 
 	if (child->parent)
 		child->parent->removeChild(child);
 
-	children.insert(std::pair<std::string, NFSTree *>(child->name, child));
+	children.insert(std::pair<std::string, TreeNode *>(child->name, child));
 	child->parent = this;
 }
 
-void NFSTree::deleteChild(NFSTree *child)
+void TreeNode::deleteChild(TreeNode *child)
 {
 	if (!child || !child->children.empty())
-		throw "deleteChild: Wrong parameter or children not empty";
+		throw TraceException("TreeNode: Wrong parameter or children not empty");
 
 	removeChild(child);
 
 	delete child;
 }
 
-void NFSTree::setName(const std::string &name)
+void TreeNode::setName(const std::string &name)
 {
-	if (name.empty()) {
-		throw "setName: Empty name not allowed";
-	}
+	if (name.empty())
+		throw TraceException("TreeNode: Empty name not allowed");
 
 	if (name == this->name)
 		return;
 
-	if (parent) {
-		throw "setName: Cannot rename an element if it is attached to a parent";
-	}
+	if (parent)
+		throw TraceException("TreeNode: Cannot rename an element if it is attached to a parent");
 
 	this->name = name;
 }
 
-std::string NFSTree::calcPath()
+std::string TreeNode::calcPath()
 {
 	char buffer[4096];
 	char *pos = buffer + 4096;
-	NFSTree *node = this;
+	TreeNode *node = this;
 
 	do {
 		pos = pos - node->getName().size();
 		if (pos <= buffer)
-			throw "calcPath: Path too long";
+			throw TraceException("TreeNode: Path too long");
 
 		memcpy(pos, node->getName().c_str(), node->getName().size());
 		node = node->getParent();
@@ -201,23 +199,12 @@ std::string NFSTree::calcPath()
 	return std::string(pos, (size_t) (buffer + 4096 - pos));
 }
 
-/*std::string NFSTree::calcPath() {
-	NFSTree *node = this;
-	std::string path = node->name;
-	node = node->parent;
-	while (node) {
-		path = node->name + '/' + path;
-		node = node->parent;
-	}
-	return path;
-}*/
-
-static size_t makePathHelper(NFSTree *node, char *buffer, int mode, int print)
+static size_t makePathHelper(TreeNode *node, char *buffer, const int mode, Logger *logger)
 {
 	if (!node)
 		return 0;
 
-	size_t pos = makePathHelper(node->getParent(), buffer, mode, print);
+	size_t pos = makePathHelper(node->getParent(), buffer, mode, logger);
 
 	if (pos) {
 		buffer[pos] = '/';
@@ -225,7 +212,7 @@ static size_t makePathHelper(NFSTree *node, char *buffer, int mode, int print)
 	}
 
 	if (pos + node->getName().size() > 4096)
-		throw "makePath: Path too long";
+		throw TraceException("TreeNode: Path too long");
 
 	memcpy(buffer + pos, node->getName().c_str(), node->getName().size());
 
@@ -234,7 +221,7 @@ static size_t makePathHelper(NFSTree *node, char *buffer, int mode, int print)
 	buffer[pos] = 0;
 
 	if (!node->isCreated() && mkdir(buffer, mode)) {
-		wperror("ERROR creating directory");
+		logger->error("ERROR creating directory");
 	} else {
 		node->setCreated(true);
 	}
@@ -242,27 +229,13 @@ static size_t makePathHelper(NFSTree *node, char *buffer, int mode, int print)
 	return pos;
 }
 
-std::string NFSTree::makePath(int mode)
+std::string TreeNode::makePath(const int mode)
 {
 	if (isCreated())
 		return calcPath();
 
 	char buffer[4096];
 
-	size_t len = makePathHelper(this, buffer, mode, false);
+	size_t len = makePathHelper(this, buffer, mode, logger);
 	return std::string(buffer, len);
 }
-
-/*std::string NFSTree::makePath(int mode) {
-	if (created)
-		return calcPath();
-	std::string path = name;
-	if (parent)
-		path = parent->makePath(mode) + '/' + path;
-
-	if (mkdir(path.c_str(), mode)) {
-		wperror("ERROR creating directory");
-	}
-	created = true;
-	return path;
-}*/

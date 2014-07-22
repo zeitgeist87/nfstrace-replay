@@ -1,8 +1,9 @@
 CC      = g++
-CFLAGS  = -Wall -O2 -std=c++11 -D_FILE_OFFSET_BITS=64
+CFLAGS  = -Wall -O2 -rdynamic -std=c++11 -D_FILE_OFFSET_BITS=64
 LDFLAGS = -lncurses -D_FILE_OFFSET_BITS=64
 
-OBJ = nfsreplay.o gc.o nfstree.o operations.o parser.o
+SRC = ConsoleDisplay.cpp nfsreplay.cpp TransactionMgr.cpp FileSystemMap.cpp Parser.cpp TreeNode.cpp
+OBJ = $(SRC:%.cpp=%.o)
 
 all: nfsreplay
 

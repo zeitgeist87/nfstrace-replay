@@ -16,25 +16,30 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CNFSPARSE_H_
-#define CNFSPARSE_H_
+#ifndef LOGGER_H_
+#define LOGGER_H_
 
-//size of the random buffer which is used
-//to fill the created files
-#define RANDBUF_SIZE 1024*1024
+#include <cerrno>
+#include <cstdio>
 
-void wperror(const char *msg);
+#include "ConsoleDisplay.h"
 
-#define SMALL_NFS_ID 1
+class Logger {
+	ConsoleDisplay *disp = 0;
+public:
+	void setDisplay(ConsoleDisplay *disp) { this->disp = disp; }
+	void error(const char *msg) {
+		if (disp)
+			disp->log("%s: %s\n", msg, strerror(errno));
+		else
+			perror(msg);
+	}
+	void log(const char *msg) {
+		if (disp)
+			disp->log("%s\n", msg);
+		else
+			puts(msg);
+	}
+};
 
-#ifdef SMALL_NFS_ID
-	#define NFS_ID uint64_t
-	#define NFS_ID_R uint64_t
-	#define NFS_ID_EMPTY(name) ((name) == 0)
-#else
-	#define NFS_ID std::string
-	#define NFS_ID_R std::string &
-	#define NFS_ID_EMPTY(name) ((name).empty())
-#endif
-
-#endif /* CNFSPARSE_H_ */
+#endif /* LOGGER_H_ */
