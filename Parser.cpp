@@ -32,12 +32,10 @@ Frame *Parser::parse(char *line)
 	int count = 0;
 	bool eol = false;
 
-	Frame *frame = new Frame();
-
-	if (!*pos)
-		throw TraceException("Parser: Empty line");
 	if (!isdigit(*pos))
-		throw TraceException("Parser: Invalid input");
+		return 0;
+
+	Frame *frame = new Frame();
 
 	while (!eol) {
 		if (*pos == '"') {

@@ -265,6 +265,8 @@ int main(int argc, char **argv)
 				continue;
 
 			Frame *frame = parser.parse(line);
+			if (!frame)
+				continue;
 
 			if (pauseExecution == 1) {
 				if (disp.pause())
