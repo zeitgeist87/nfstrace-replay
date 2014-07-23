@@ -28,7 +28,6 @@
 
 class Logger;
 class TransactionMgr;
-class FileSystemMap;
 
 class ConsoleDisplay {
 	Settings &sett;

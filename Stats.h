@@ -44,22 +44,22 @@ public:
 		if (!fd)
 			throw TraceException("Stats: Unable to open file");
 
-		fprintf(fd, "numLinesRead %llu\n", linesRead);
-		fprintf(fd, "numRequestsProcessed %llu\n",
+		fprintf(fd, "LinesRead %llu\n", linesRead);
+		fprintf(fd, "RequestsProcessed %llu\n",
 				requestsProcessed);
-		fprintf(fd, "numResponsesProcessed %llu\n",
+		fprintf(fd, "ResponsesProcessed %llu\n",
 			responsesProcessed);
-		fprintf(fd, "numRemoveOperations %llu\n",
+		fprintf(fd, "RemoveOperations %llu\n",
 			removeOperations);
-		fprintf(fd, "numLinkOperations %llu\n",
+		fprintf(fd, "LinkOperations %llu\n",
 			linkOperations);
-		fprintf(fd, "numLookupOperations %llu\n",
+		fprintf(fd, "LookupOperations %llu\n",
 			lookupOperations);
-		fprintf(fd, "numRenameOperations %llu\n",
+		fprintf(fd, "RenameOperations %llu\n",
 			renameOperations);
-		fprintf(fd, "numWriteOperations %llu\n",
+		fprintf(fd, "WriteOperations %llu\n",
 			writeOperations);
-		fprintf(fd, "numCreateOperations %llu\n",
+		fprintf(fd, "CreateOperations %llu\n",
 			createOperations);
 		fclose(fd);
 	}

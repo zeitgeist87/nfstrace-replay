@@ -19,7 +19,6 @@
 #include <cstring>
 #include <cstdio>
 #include <string>
-
 #include <fcntl.h>
 #include <signal.h>
 #include <unistd.h>
@@ -64,7 +63,7 @@ void handler(int sig)
 	fprintf(stderr, "Error: signal %d:\n", sig);
 
 	// get void*'s for all entries on the stack
-	size = backtrace(array, 20);
+	size = backtrace(array, 100);
 
 	backtrace_symbols_fd(array, size, STDERR_FILENO);
 
@@ -76,9 +75,8 @@ static volatile sig_atomic_t pauseExecution = 0;
 
 void sigint_handler(int sig)
 {
-	if (pauseExecution == 0) {
+	if (pauseExecution == 0)
 		pauseExecution = 1;
-	}
 }
 
 static FILE *openInputFile(char *filename)
@@ -283,6 +281,8 @@ int main(int argc, char **argv)
 			if (transMgr.process(frame))
 				break;
 		}
+
+		stats.writeReport(sett.reportPath);
 	} catch (exception &e) {
 		disp.destroy();
 		fprintf(stderr, "%s\n", e.what());
@@ -292,8 +292,6 @@ int main(int argc, char **argv)
 	fclose(input);
 	close(sett.syncFd);
 	remove(".sync_file_handle");
-
-	stats.writeReport(sett.reportPath);
 
 	return ret;
 }
