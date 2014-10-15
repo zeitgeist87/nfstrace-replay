@@ -350,6 +350,9 @@ void FileSystemMap::writeFile(const Frame &req, const Frame &res)
 		if (element->getSize() == 0)
 			mode |= O_TRUNC;
 
+		if (req.offset + req.count > element->getSize())
+			element->setSize(req.offset + req.count);
+
 		int i, fd = -1;
 		ssize_t ret = 0;
 
@@ -363,6 +366,10 @@ void FileSystemMap::writeFile(const Frame &req, const Frame &res)
 
 		if (fd == -1) {
 			logger.error("ERROR opening file");
+		} else if (sett.inodeTest) {
+			element->setCreated(true);
+			ftruncate(fd, element->getSize());
+			close(fd);
 		} else {
 			element->setCreated(true);
 			if (lseek(fd, req.offset, SEEK_SET) == -1) {
@@ -390,10 +397,6 @@ void FileSystemMap::writeFile(const Frame &req, const Frame &res)
 			}
 			close(fd);
 		}
-
-		auto size = element->getSize();
-		if (req.offset + req.count > size)
-			element->setSize(req.offset + req.count);
 	}
 }
 

@@ -62,6 +62,7 @@ public:
 	int syncMinutes = 10;
 	bool noSync = false;
 	bool dataSync = false;
+	bool inodeTest = false;
 	bool enableGC = true;
 	std::string reportPath;
 	int64_t startTime = -1;

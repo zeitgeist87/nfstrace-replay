@@ -44,6 +44,7 @@ using namespace std;
 	"  -g\t\tenable gc for unused nodes (default)\n"		\
 	"  -G\t\tdisable gc for unused nodes\n"				\
 	"  -h\t\tdisplay this help and exit\n"				\
+	"  -i\t\tinode test (create empty files)\n"			\
 	"  -l yyyy-mm-dd\tstop at limit\n"				\
 	"  -r path\twrite report at the end\n"				\
 	"  -s minutes\tinterval to sync according\n"			\
@@ -148,7 +149,7 @@ static int parseParams(int argc, char **argv, Settings &sett)
 {
 	int c;
 
-	while ((c = getopt(argc, argv, "dDzs:ShtTb:l:gGr:")) != -1) {
+	while ((c = getopt(argc, argv, "dDzs:ShitTb:l:gGr:")) != -1) {
 		switch (c) {
 		case 'z':
 			//write only zeros
@@ -177,6 +178,9 @@ static int parseParams(int argc, char **argv, Settings &sett)
 		case 'h':
 			printf(NFSREPLAY_USAGE, argv[0]);
 			return EXIT_FAILURE;
+		case 'i':
+			sett.inodeTest = true;
+			break;
 		case 't':
 			sett.displayTime = true;
 			break;
