@@ -17,7 +17,6 @@
 
 class FileHandleMap {
 private:
-	// Map file handles to tree nodes
 	std::unordered_multimap<FileHandle, std::unique_ptr<TreeNode>> map;
 
 public:
@@ -37,58 +36,6 @@ public:
 		return it->second.get();
 	}
 
-	void replaceHandle(TreeNode *node, const FileHandle &fh) {
-		auto it = removeNode(node);
-		node->setHandle(fh);
-		map.emplace(fh, std::move(it));
-	}
-
-	TreeNode *createNode(const FileHandle &fh, int64_t timestamp) {
-		auto it = map.emplace(fh, std::make_unique<TreeNode>(fh, timestamp));
-		return it->second.get();
-	}
-
-	TreeNode *createNode(const FileHandle &fh,  const std::string &name, int64_t timestamp) {
-		auto it = map.emplace(fh, std::make_unique<TreeNode>(fh, name, timestamp));
-		return it->second.get();
-	}
-
-	TreeNode *getOrCreateNode(const FileHandle &fh, int64_t timestamp) {
-		auto node = getNode(fh);
-		return node ? node : createNode(fh, timestamp);
-	}
-
-	TreeNode *getOrCreateNode(const FileHandle &fh, const std::string &name, int64_t timestamp) {
-		auto node = getNode(fh);
-		return node ? node : createNode(fh, name, timestamp);
-	}
-
-	TreeNode *getOrCreateDir(const FileHandle &fh, int64_t timestamp) {
-		auto node = getNode(fh);
-		if (!node) {
-			node = createNode(fh, timestamp);
-			node->setDir(true);
-		}
-
-		if (!node->isDir())
-			throw TraceException("FileSystemMap: Node is not a directory");
-
-		return node;
-	}
-
-	TreeNode *getOrCreateDir(const FileHandle &fh, const std::string &name, int64_t timestamp) {
-		auto node = getNode(fh);
-		if (!node) {
-			node = createNode(fh, name, timestamp);
-			node->setDir(true);
-		}
-
-		if (!node->isDir())
-			throw TraceException("FileSystemMap: Node is not a directory");
-
-		return node;
-	}
-
 	std::unique_ptr<TreeNode> removeNode(TreeNode *element)
 	{
 		auto range = map.equal_range(element->getHandle());
@@ -104,6 +51,38 @@ public:
 		}
 
 		throw TraceException("FileSystemMap: Element could not be deleted");
+	}
+
+	void switchNodeHandle(TreeNode *node, const FileHandle &fh) {
+		auto it = removeNode(node);
+		node->setHandle(fh);
+		map.emplace(fh, std::move(it));
+	}
+
+	template<class... Args>
+	TreeNode *createNode(const FileHandle &fh, Args&&... args) {
+		auto it = map.emplace(fh, std::make_unique<TreeNode>(fh, std::forward<Args>(args)...));
+		return it->second.get();
+	}
+
+	template<class... Args>
+	TreeNode *getOrCreateNode(const FileHandle &fh, Args&&... args) {
+		auto node = getNode(fh);
+		return node ? node : createNode(fh, std::forward<Args>(args)...);
+	}
+
+	template<class... Args>
+	TreeNode *getOrCreateDir(const FileHandle &fh, Args&&... args) {
+		auto node = getNode(fh);
+		if (!node) {
+			node = createNode(fh, std::forward<Args>(args)...);
+			node->setDir(true);
+		}
+
+		if (!node->isDir())
+			throw TraceException("FileSystemMap: Node is not a directory");
+
+		return node;
 	}
 
 	FileHandleMap(uint64_t reserve)

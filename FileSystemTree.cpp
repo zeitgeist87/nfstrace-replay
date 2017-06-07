@@ -111,7 +111,7 @@ void FileSystemTree::createLookup(const Frame &req, const Frame &res)
 				createMoveElement(element, parent, req.name);
 			} else {
 				// Replace fh of current element
-				fhmap.replaceHandle(element, res.fh);
+				fhmap.switchNodeHandle(element, res.fh);
 			}
 		}
 
@@ -196,7 +196,7 @@ void FileSystemTree::createFile(const Frame &req, const Frame &res)
 				createMoveElement(element, parent, req.name);
 			} else {
 				// Replace fh of current element
-				fhmap.replaceHandle(element, res.fh);
+				fhmap.switchNodeHandle(element, res.fh);
 			}
 		}
 
