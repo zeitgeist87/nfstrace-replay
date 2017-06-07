@@ -266,23 +266,22 @@ int main(int argc, char **argv)
 			if (!*line)
 				continue;
 
-			Frame *frame = parser.parse(line);
+			auto frame = parser.parse(line);
 			if (!frame)
 				continue;
 
 			if (pauseExecution == 1) {
 				if (disp.pause()) {
-					delete frame;
 					break;
 				}
 
 				pauseExecution = 0;
 			}
 
-			stats.process(frame);
-			disp.process(frame);
+			stats.process(frame.get());
+			disp.process(frame.get());
 
-			if (transMgr.process(frame))
+			if (transMgr.process(std::move(frame)))
 				break;
 		}
 

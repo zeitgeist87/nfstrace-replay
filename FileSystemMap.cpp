@@ -92,76 +92,70 @@ void FileSystemMap::createLookup(const Frame &req, const Frame &res)
 		return;
 
 	auto it = fhmap.find(req.fh);
-	TreeNode *parent;
-	if (it != fhmap.end()) {
-		parent = it->second;
-		parent->setLastAccess(res.time);
-	} else {
-		//parent is unknown, create new entry
-		parent = new TreeNode(req.fh, res.time);
-		parent->setDir(true);
-		fhmap.insert(pair<FileHandle, TreeNode *>(req.fh, parent));
+	if (it == fhmap.end()) {
+		// Parent is unknown, create new entry
+		it = fhmap.emplace(req.fh, std::make_unique<TreeNode>(req.fh, res.time));
+		it->second->setDir(true);
 	}
+
+	TreeNode *parent = it->second.get();
+	parent->setLastAccess(res.time);
 
 	TreeNode *element = parent->getChild(req.name);
 	if (element) {
 		if (element->getHandle() != res.fh) {
 			it = fhmap.find(res.fh);
 			if (res.ftype == DIR && it != fhmap.end()) {
-				//no duplicate id's allowed
-				//rename to handle name
+				// No duplicate ids allowed
+				// Rename to handle name
 				createMoveElement(element, parent,
 						  element->getHandle());
-				//move in correct element
-				element = it->second;
+				// Move in correct element
+				element = it->second.get();
 				createMoveElement(element, parent, req.name);
 			} else {
-				//replace fh of current element
-				removeFromMap(element);
-
+				// Replace fh of current element
+				auto node = removeFromMap(element);
 				element->setHandle(res.fh);
-				fhmap.insert(pair<FileHandle, TreeNode *>(res.fh,
-					     element));
+				fhmap.emplace(res.fh, std::move(node));
 			}
 		}
 
 		createChangeFType(element, res.ftype);
 		element->setLastAccess(res.time);
 	} else {
-		//search for real element
+		// Search for real element
 		if (res.ftype == DIR) {
-			//no links
+			// No links
 			it = fhmap.find(res.fh);
 			if (it != fhmap.end()) {
-				element = it->second;
+				element = it->second.get();
 				createMoveElement(element, parent, req.name);
 				createChangeFType(element, res.ftype);
 				element->setLastAccess(res.time);
 			} else {
-				//element does not exist create it
-				element = new TreeNode(res.fh, req.name,
-						res.time);
+				// Element does not exist create it
+				it = fhmap.emplace(res.fh, std::make_unique<TreeNode>(res.fh,
+									req.name, res.time));
+				element = it->second.get();
 				element->setDir(true);
-				fhmap.insert(pair<FileHandle, TreeNode *>(res.fh,
-					     element));
 				parent->addChild(element);
 			}
 		} else {
-			//there are links
+			// There are links
 			it = fhmap.find(res.fh);
 			if (it != fhmap.end()) {
-				element = it->second;
+				element = it->second.get();
 
 				if (element->getParent()) {
-					//linked file has the same handle but different names
-					TreeNode *el = new TreeNode(
-							element->getHandle(),
-							req.name, res.time);
+					// Linked file has the same handle but different names
+					it = fhmap.emplace(element->getHandle(), std::make_unique<TreeNode>(
+									element->getHandle(), req.name, res.time));
+					auto el = it->second.get();
 					el->setDir(false);
 					parent->addChild(el);
-					fhmap.insert(pair<FileHandle, TreeNode *>(element->getHandle(), el));
 				}else{
-					//file has no parent move it to new position
+					// File has no parent move it to new position
 					if (element->isCreated()) {
 						string oldpath = element->calcPath();
 						string newpath = parent->makePath() + '/' + req.name;
@@ -181,10 +175,11 @@ void FileSystemMap::createLookup(const Frame &req, const Frame &res)
 
 				element->setLastAccess(res.time);
 			} else {
-				//element does not exist create it
-				element = new TreeNode(res.fh, req.name, res.time);
+				// Element does not exist create it
+				it = fhmap.emplace(res.fh, std::make_unique<TreeNode>(res.fh,
+									req.name, res.time));
+				element = it->second.get();
 				element->setDir(false);
-				fhmap.insert(pair<FileHandle, TreeNode *>(res.fh, element));
 				parent->addChild(element);
 			}
 		}
@@ -200,40 +195,38 @@ void FileSystemMap::createFile(const Frame &req, const Frame &res)
 		return;
 
 	auto it = fhmap.find(req.fh);
-	TreeNode *parent;
-	if (it != fhmap.end()) {
-		parent = it->second;
-		parent->setLastAccess(res.time);
-	} else {
-		//parent is unknown, create new entry
-		parent = new TreeNode(req.fh, res.time);
-		parent->setDir(true);
-		fhmap.insert(pair<FileHandle, TreeNode *>(req.fh, parent));
-		//don't make empty paths
-		//parent->makePath();
+	if (it == fhmap.end()) {
+		// Parent is unknown, create new entry
+		it = fhmap.emplace(req.fh, std::make_unique<TreeNode>(req.fh, res.time));
+		it->second->setDir(true);
 	}
+
+	TreeNode *parent = it->second.get();
+	parent->setLastAccess(res.time);
+
+	// Don't make empty paths
+	//parent->makePath();
 
 	TreeNode *element = parent->getChild(req.name);
 	if (element) {
 		if (element->getHandle() != res.fh) {
 			it = fhmap.find(res.fh);
 			if (res.ftype == DIR && it != fhmap.end()) {
-				//no duplicate id's allowed
-				//rename to handle name
+				// No duplicate ids allowed
+				// Rename to handle name
 				createMoveElement(element, parent, element->getHandle());
-				//move in correct element
-				element = it->second;
+				// Move in correct element
+				element = it->second.get();
 				createMoveElement(element, parent, req.name);
 			} else {
-				//replace fh of current element
-				removeFromMap(element);
-
+				// Replace fh of current element
+				auto node = removeFromMap(element);
 				element->setHandle(res.fh);
-				fhmap.insert(pair<FileHandle, TreeNode *>(res.fh, element));
+				fhmap.emplace(res.fh, std::move(node));
 			}
 		}
 
-		//write file to new size
+		// Write file to new size
 		if (res.operation == CREATE)
 			element->setSize(0);
 
@@ -243,26 +236,27 @@ void FileSystemMap::createFile(const Frame &req, const Frame &res)
 		createChangeFType(element, res.ftype);
 		element->setLastAccess(res.time);
 	} else {
-		//search for real element
+		// Search for real element
 		if (res.ftype == DIR) {
 			it = fhmap.find(res.fh);
 			if (it != fhmap.end()) {
-				element = it->second;
-				//move element to new parent
+				element = it->second.get();
+				// Move element to new parent
 				createMoveElement(element, parent, req.name);
 				createChangeFType(element, res.ftype);
 				element->setLastAccess(res.time);
 			} else {
-				//element does not exist create it
-				element = new TreeNode(res.fh, req.name, res.time);
+				// Element does not exist create it
+				it = fhmap.emplace(res.fh, std::make_unique<TreeNode>(res.fh,
+									req.name, res.time));
+				element = it->second.get();
 				element->setDir(true);
-				fhmap.insert(pair<FileHandle, TreeNode *>(res.fh, element));
 				parent->addChild(element);
 			}
 		} else {
 			it = fhmap.find(res.fh);
 			if (it != fhmap.end()) {
-				element = it->second;
+				element = it->second.get();
 				if (element->isCreated()) {
 					if (remove(element->calcPath().c_str()))
 						logger.error("ERROR creating element");
@@ -278,7 +272,7 @@ void FileSystemMap::createFile(const Frame &req, const Frame &res)
 
 				createChangeFType(element, res.ftype);
 
-				//write file to new size
+				// Write file to new size
 				element->setSize(0);
 				element->writeToSize(res.size);
 
@@ -287,10 +281,11 @@ void FileSystemMap::createFile(const Frame &req, const Frame &res)
 
 				element->setLastAccess(res.time);
 			} else {
-				//element does not exist create it
-				element = new TreeNode(res.fh, req.name, res.time);
+				// Element does not exist create it
+				it = fhmap.emplace(res.fh, std::make_unique<TreeNode>(res.fh,
+									req.name, res.time));
+				element = it->second.get();
 				element->setDir(false);
-				fhmap.insert(pair<FileHandle, TreeNode *>(res.fh, element));
 				parent->addChild(element);
 				element->writeToSize(res.size);
 			}
@@ -305,7 +300,7 @@ void FileSystemMap::removeFile(const Frame &req, const Frame &res)
 
 	auto it = fhmap.find(req.fh);
 	if (it != fhmap.end()) {
-		TreeNode *dir = it->second;
+		TreeNode *dir = it->second.get();
 		TreeNode *element = dir->getChild(req.name);
 		if (element && element->isDeletable()) {
 			if (element->isCreated()) {
@@ -315,10 +310,10 @@ void FileSystemMap::removeFile(const Frame &req, const Frame &res)
 					logger.error("ERROR removing");
 			}
 
-			removeFromMap(element);
 			dir->deleteChild(element);
 			dir->clearEmptyDir();
 			dir->setLastAccess(res.time);
+			removeFromMap(element);
 		}
 	}
 }
@@ -332,12 +327,12 @@ void FileSystemMap::writeFile(const Frame &req, const Frame &res)
 		auto it = fhmap.find(req.fh);
 		TreeNode *element;
 		if (it == fhmap.end()) {
-			//element does not exist create it
-			element = new TreeNode(req.fh, res.time);
+			// Element does not exist create it
+			it = fhmap.emplace(req.fh, std::make_unique<TreeNode>(req.fh, res.time));
+			element = it->second.get();
 			element->setDir(false);
-			fhmap.insert(pair<FileHandle, TreeNode *>(req.fh, element));
 		} else {
-			element = it->second;
+			element = it->second.get();
 			element->setLastAccess(res.time);
 		}
 
@@ -410,7 +405,7 @@ void FileSystemMap::renameFile(const Frame &req, const Frame &res)
 	auto it = fhmap.find(req.fh);
 	auto it2 = fhmap.find(req.fh2);
 	if (it != fhmap.end()) {
-		TreeNode *dir1 = it->second;
+		TreeNode *dir1 = it->second.get();
 
 		TreeNode *el = dir1->getChild(req.name);
 		if (!el)
@@ -421,13 +416,13 @@ void FileSystemMap::renameFile(const Frame &req, const Frame &res)
 
 		TreeNode *dir2;
 		if (it2 != fhmap.end()) {
-			dir2 = it2->second;
+			dir2 = it2->second.get();
 			dir2->setLastAccess(res.time);
 		} else {
-			//create new dir
-			dir2 = new TreeNode(req.fh2, res.time);
+			// Create new dir
+			it = fhmap.emplace(req.fh2, std::make_unique<TreeNode>(req.fh2, res.time));
+			dir2 = it->second.get();
 			dir2->setDir(true);
-			fhmap.insert(pair<FileHandle, TreeNode *>(req.fh2, dir2));
 		}
 		TreeNode *el2 = dir2->getChild(req.name2);
 		if ((!el2 || el2->isDeletable()) && el != el2) {
@@ -449,8 +444,8 @@ void FileSystemMap::renameFile(const Frame &req, const Frame &res)
 				if (el2->isCreated()) {
 					el->setCreated(true);
 				}
-				removeFromMap(el2);
 				dir2->deleteChild(el2);
+				removeFromMap(el2);
 			}
 
 			//move src to target
@@ -471,17 +466,17 @@ void FileSystemMap::createLink(const Frame &req, const Frame &res)
 	auto it = fhmap.find(req.fh);
 	auto it2 = fhmap.find(req.fh2);
 	if (it != fhmap.end()) {
-		TreeNode *srcfile = it->second;
+		TreeNode *srcfile = it->second.get();
 		srcfile->setLastAccess(res.time);
 		TreeNode *targetdir;
 		if (it2 != fhmap.end()) {
-			targetdir = it2->second;
+			targetdir = it2->second.get();
 			targetdir->setLastAccess(res.time);
 		} else {
 			//create new dir
 			targetdir = new TreeNode(req.fh2, res.time);
 			targetdir->setDir(true);
-			fhmap.insert(pair<FileHandle, TreeNode *>(req.fh2, targetdir));
+			fhmap.emplace(req.fh2, std::unique_ptr<TreeNode>(targetdir));
 		}
 		TreeNode *element = targetdir->getChild(req.name);
 		if ((!element || element->isDeletable()) && element != srcfile) {
@@ -493,8 +488,8 @@ void FileSystemMap::createLink(const Frame &req, const Frame &res)
 						return;
 					}
 				}
-				removeFromMap(element);
 				targetdir->deleteChild(element);
+				removeFromMap(element);
 			}
 			string oldpath;
 			string newpath;
@@ -503,11 +498,11 @@ void FileSystemMap::createLink(const Frame &req, const Frame &res)
 				newpath = targetdir->makePath() + '/' + req.name;
 			}
 
-			//linked file has the same handle but different names
+			// Linked file has the same handle but different names
 			TreeNode *el = new TreeNode(srcfile->getHandle(), req.name, res.time);
 			el->setDir(false);
 			targetdir->addChild(el);
-			fhmap.insert(pair<FileHandle, TreeNode *>(srcfile->getHandle(), el));
+			fhmap.emplace(srcfile->getHandle(), std::unique_ptr<TreeNode>(el));
 
 			if (srcfile->isCreated()) {
 				if (link(oldpath.c_str(), newpath.c_str()) && errno != EEXIST)
@@ -528,13 +523,13 @@ void FileSystemMap::createSymlink(const Frame &req, const Frame &res)
 	TreeNode *dir;
 	auto it = fhmap.find(req.fh);
 	if (it != fhmap.end()) {
-		dir = it->second;
+		dir = it->second.get();
 		dir->setLastAccess(res.time);
 	} else {
 		//create new dir
 		dir = new TreeNode(req.fh, res.time);
 		dir->setDir(true);
-		fhmap.insert(pair<FileHandle, TreeNode *>(req.fh, dir));
+		fhmap.emplace(req.fh, std::unique_ptr<TreeNode>(dir));
 	}
 
 	TreeNode *element = dir->getChild(req.name);
@@ -547,14 +542,14 @@ void FileSystemMap::createSymlink(const Frame &req, const Frame &res)
 					return;
 				}
 			}
-			removeFromMap(element);
 			dir->deleteChild(element);
+			removeFromMap(element);
 		}
 
 		TreeNode *el = new TreeNode(res.fh, req.name, res.time);
 		el->setDir(false);
 		dir->addChild(el);
-		fhmap.insert(pair<FileHandle, TreeNode *>(res.fh, el));
+		fhmap.emplace(res.fh, std::unique_ptr<TreeNode>(el));
 
 		if (dir->isCreated()) {
 			string path = dir->makePath() + '/' + req.name;
@@ -574,7 +569,7 @@ void FileSystemMap::getAttr(const Frame &req, const Frame &res)
 
 	auto it = fhmap.find(req.fh);
 	if (it != fhmap.end()) {
-		TreeNode *element = it->second;
+		TreeNode *element = it->second.get();
 		element->setLastAccess(res.time);
 
 		if (element->isCreated()) {
@@ -594,7 +589,7 @@ void FileSystemMap::setAttr(const Frame &req, const Frame &res)
 
 	auto it = fhmap.find(req.fh);
 	if (it != fhmap.end()) {
-		TreeNode *element = it->second;
+		TreeNode *element = it->second.get();
 		element->setLastAccess(res.time);
 
 		if (element->isCreated()) {
@@ -630,13 +625,13 @@ static bool recursive_tree_gc(TreeNode *element, set<TreeNode *> &del_list,
 	if (del_list.count(element))
 		return true;
 
-	//test children
+	// Test children
 	for (auto it = element->children_begin(), e = element->children_end(); it != e; ++it) {
 		if (recursive_tree_gc(it->second, del_list, ko_time) == false)
 			return false;
 	}
 
-	//found an empty not created old element
+	// Found an empty not created old element
 	del_list.insert(element);
 	element->clearChildren();
 	return true;
@@ -648,9 +643,9 @@ void FileSystemMap::gc(int64_t time) {
 					time - GC_DISCARD_HARD_THRESHOLD :
 					time - GC_DISCARD_THRESHOLD;
 
-	//clear up old unused file handlers
+	// Clear up old unused file handlers
 	for (auto it = fhmap.begin(), e = fhmap.end(); it != e; ++it) {
-		TreeNode *element = it->second;
+		TreeNode *element = it->second.get();
 		if (recursive_tree_gc(element, del_list, ko_time)
 				&& element->getParent()) {
 			element->getParent()->removeChild(element);
@@ -660,6 +655,5 @@ void FileSystemMap::gc(int64_t time) {
 	for (auto it = del_list.begin(), e = del_list.end(); it != e; ++it) {
 		TreeNode *element = *it;
 		removeFromMap(element);
-		delete element;
 	}
 }

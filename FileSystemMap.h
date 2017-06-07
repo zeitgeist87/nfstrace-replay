@@ -20,6 +20,7 @@
 #define FILESYSTEMMAP_H_
 
 #include <unordered_map>
+#include <memory>
 #include <cstdio>
 #include <cstring>
 #include <cerrno>
@@ -51,17 +52,20 @@ private:
 	Logger &logger;
 
 	//map file handles to tree nodes
-	std::unordered_multimap<FileHandle, TreeNode *> fhmap;
+	std::unordered_multimap<FileHandle, std::unique_ptr<TreeNode>> fhmap;
 	char randbuf[RANDBUF_SIZE];
 
-	void removeFromMap(TreeNode *element)
+	std::unique_ptr<TreeNode> removeFromMap(TreeNode *element)
 	{
 		auto range = fhmap.equal_range(element->getHandle());
 
 		for (auto it = range.first, e = range.second; it != e; ++it) {
-			if (it->second == element) {
+			if (it->second.get() == element) {
+				// First copy the node
+				auto node = std::move(it->second);
+				// Second erase the map entry
 				fhmap.erase(it);
-				return;
+				return node;
 			}
 		}
 
@@ -99,12 +103,6 @@ public:
 		TreeNode::setLogger(&logger);
 	}
 
-	virtual ~FileSystemMap() {
-		for (auto it = fhmap.begin(), e = fhmap.end(); it != e; ++it) {
-			delete it->second;
-		}
-	}
-
 	uint64_t size() const { return fhmap.size(); }
 
 	int sync() {
@@ -116,7 +114,10 @@ public:
 
 	void gc(int64_t time);
 
-	void process(const Frame &req, const Frame &res) {
+	void process(std::unique_ptr<const Frame> &&reqp, std::unique_ptr<const Frame> &&resp) {
+		auto &req = *reqp.get();
+		auto &res = *resp.get();
+
 		switch (res.operation) {
 		case LOOKUP:
 			createLookup(req, res);

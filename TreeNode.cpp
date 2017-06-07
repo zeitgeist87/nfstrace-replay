@@ -159,8 +159,6 @@ void TreeNode::deleteChild(TreeNode *child)
 		throw TraceException("TreeNode: Wrong parameter or children not empty");
 
 	removeChild(child);
-
-	delete child;
 }
 
 void TreeNode::setName(const std::string &name)

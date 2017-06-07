@@ -17,12 +17,13 @@
  */
 
 #include <map>
+#include <memory>
 #include <string>
 #include <cstring>
 #include "Parser.h"
 #include "TraceException.h"
 
-Frame *Parser::parse(char *line)
+std::unique_ptr<Frame> Parser::parse(char *line)
 {
 	char *pos = line;
 	char *token = line;
@@ -33,9 +34,9 @@ Frame *Parser::parse(char *line)
 	bool eol = false;
 
 	if (!isdigit(*pos))
-		return 0;
+		return std::unique_ptr<Frame>(nullptr);
 
-	Frame *frame = new Frame();
+	auto frame = std::make_unique<Frame>();
 
 	while (!eol) {
 		if (*pos == '"') {
@@ -113,8 +114,7 @@ Frame *Parser::parse(char *line)
 	}
 
 	if (frame->protocol == NOPROT) {
-		delete frame;
-		return 0;
+		return std::unique_ptr<Frame>(nullptr);
 	}
 
 	return frame;

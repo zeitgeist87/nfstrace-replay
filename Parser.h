@@ -21,6 +21,7 @@
 
 #include <cstring>
 #include <map>
+#include <memory>
 #include "Frame.h"
 
 class Parser {
@@ -80,7 +81,7 @@ public:
 		opmap["commit"] = COMMIT;
 	}
 
-	Frame *parse(char *line);
+	std::unique_ptr<Frame> parse(char *line);
 };
 
 #endif /* PARSER_H_ */

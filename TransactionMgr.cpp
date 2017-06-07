@@ -25,7 +25,7 @@
 
 using namespace std;
 
-void TransactionMgr::processRequest(const Frame *req) {
+void TransactionMgr::processRequest(std::unique_ptr<const Frame> &&req) {
 	switch (req->operation) {
 	case LOOKUP:
 	case CREATE:
@@ -33,8 +33,8 @@ void TransactionMgr::processRequest(const Frame *req) {
 	case REMOVE:
 	case RMDIR:
 		if (!req->fh.empty() && !req->name.empty()) {
-			//important: insert does not update value
-			transactions[req->xid] = req;
+			// Important: insert does not update value
+			transactions[req->xid] = std::move(req);
 			return;
 		}
 		break;
@@ -43,83 +43,69 @@ void TransactionMgr::processRequest(const Frame *req) {
 	case WRITE:
 	case SETATTR:
 		if (!req->fh.empty()) {
-			transactions[req->xid] = req;
+			transactions[req->xid] = std::move(req);;
 			return;
 		}
 		break;
 	case RENAME:
 		if (!req->fh.empty() && !req->fh2.empty() && !req->name.empty() && !req->name2.empty()) {
-			transactions[req->xid] = req;
+			transactions[req->xid] = std::move(req);;
 			return;
 		}
 		break;
 	case LINK:
 		if (!req->fh.empty() && !req->fh2.empty() && !req->name.empty()) {
-			transactions[req->xid] = req;
+			transactions[req->xid] = std::move(req);;
 			return;
 		}
 		break;
 	case SYMLINK:
 		if (!req->fh.empty() && !req->name.empty() && !req->name2.empty()) {
-			transactions[req->xid] = req;
+			transactions[req->xid] = std::move(req);;
 			return;
 		}
 		break;
 	default:
 		break;
 	}
-
-	delete req;
 }
 
-
-void TransactionMgr::processResponse(const Frame *res)
+void TransactionMgr::processResponse(std::unique_ptr<const Frame> &&res)
 {
 	auto transIt = transactions.find(res->xid);
 	if (transIt == transactions.end()) {
-		delete res;
 		return;
 	}
 
-	const Frame *req = transIt->second;
+	auto req = transIt->second.get();
 
 	if (res->status != FOK || res->operation != req->operation ||
 	   res->time - req->time > GC_MAX_TRANSACTIONTIME) {
-		delete req;
-		delete res;
 		transactions.erase(transIt);
 		return;
 	}
 
-	fhmap.process(*req, *res);
-
-	delete req;
-	delete res;
+	fhmap.process(std::move(transIt->second), std::move(res));
 	transactions.erase(transIt);
 }
 
 void TransactionMgr::gc(int64_t time) {
-	vector<uint32_t> trans_del_list;
 	int64_t trans_ko_time = time - GC_MAX_TRANSACTIONTIME;
 
 	//clear up old transactions
-	for (auto it = transactions.begin(), e = transactions.end(); it != e; ++it) {
-		const Frame *frame = it->second;
-		if (frame->time < trans_ko_time) {
-			trans_del_list.push_back(it->first);
+	for (auto it = transactions.begin(), e = transactions.end(); it != e;) {
+		if (it->second->time < trans_ko_time) {
+			transactions.erase(it++);
+		} else {
+			++it;
 		}
-	}
-
-	for (auto it = trans_del_list.begin(), e = trans_del_list.end();
-			it != e; ++it) {
-		transactions.erase(*it);
 	}
 }
 
-int TransactionMgr::process(Frame *frame) {
+int TransactionMgr::process(std::unique_ptr<const Frame> &&frame) {
 	int64_t time = frame->time;
 
-	//sync every 10 minutes
+	// Sync every 10 minutes
 	if (!sett.noSync && last_sync + sett.syncMinutes * 60 < time) {
 		if (!fhmap.sync())
 			logger.error("Error syncing file system");
@@ -144,13 +130,12 @@ int TransactionMgr::process(Frame *frame) {
 	if (sett.startTime == -1 || sett.startTime < time) {
 		if (frame->protocol == C3 || frame->protocol == C2) {
 			stats.requestsProcessed++;
-			processRequest(frame);
+			processRequest(std::move(frame));
 		} else if (frame->protocol == R3 || frame->protocol == R2) {
 			stats.responsesProcessed++;
-			processResponse(frame);
+			processResponse(std::move(frame));
 		}
-	} else
-		delete frame;
+	}
 
 	if (sett.endTime < 0 && sett.endAfterDays > 0) {
 		if (sett.startTime > 0)

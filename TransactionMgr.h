@@ -20,6 +20,7 @@
 #define TRANSACTIONMGR_H_
 
 #include <unordered_map>
+#include <memory>
 
 #include "Frame.h"
 #include "Settings.h"
@@ -36,13 +37,13 @@ private:
 	FileSystemMap fhmap;
 	Logger &logger;
 	//map transaction ids to frames
-	std::unordered_map<uint32_t, const Frame *> transactions;
+	std::unordered_map<uint32_t, std::unique_ptr<const Frame>> transactions;
 
 	int64_t last_sync = 0;
 	int64_t last_gc = 0;
 
-	void processRequest(const Frame *req);
-	void processResponse(const Frame *res);
+	void processRequest(std::unique_ptr<const Frame> &&req);
+	void processResponse(std::unique_ptr<const Frame> &&res);
 
 public:
 	TransactionMgr(Settings &sett, Stats &stats, Logger &logger) :
@@ -50,17 +51,12 @@ public:
 			logger(logger) {
 
 	}
-	virtual ~TransactionMgr() {
-		for (auto it = transactions.begin(), e = transactions.end(); it != e; ++it) {
-			delete it->second;
-		}
-	}
 
 	uint64_t size() {
 		return fhmap.size();
 	}
 
-	int process(Frame *frame);
+	int process(std::unique_ptr<const Frame> &&frame);
 	void gc(int64_t time);
 };
 
