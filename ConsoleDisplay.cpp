@@ -20,10 +20,11 @@
 #include <ctime>
 
 #include "ConsoleDisplay.h"
+
+#include "FileSystemTree.h"
 #include "Logger.h"
 #include "Frame.h"
 #include "TransactionMgr.h"
-#include "FileSystemMap.h"
 
 ConsoleDisplay::ConsoleDisplay(Settings &sett, Stats &stats,
 		TransactionMgr &transMgr, Logger &logger) :

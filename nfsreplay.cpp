@@ -29,9 +29,9 @@
 #include "Settings.h"
 #include "Stats.h"
 #include "Parser.h"
-#include "FileSystemMap.h"
 #include "TransactionMgr.h"
 #include "ConsoleDisplay.h"
+#include "FileSystemTree.h"
 #include "Logger.h"
 
 using namespace std;

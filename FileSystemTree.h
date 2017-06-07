@@ -16,16 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FILESYSTEMMAP_H_
-#define FILESYSTEMMAP_H_
+#ifndef FILESYSTEMTREE_H_
+#define FILESYSTEMTREE_H_
 
-#include <unordered_map>
-#include <memory>
-#include <cstdio>
-#include <cstring>
-#include <cerrno>
+#include <string>
 #include <unistd.h>
 
+#include "FileHandleMap.h"
 #include "FileHandle.h"
 #include "Settings.h"
 #include "Stats.h"
@@ -45,32 +42,15 @@
 #define GC_DISCARD_HARD_THRESHOLD	(60 * 5)
 #define GC_DISCARD_THRESHOLD		(60 * 60 * 24)
 
-class FileSystemMap {
+class FileSystemTree {
 private:
 	Settings &sett;
 	Stats &stats;
 	Logger &logger;
 
-	//map file handles to tree nodes
-	std::unordered_multimap<FileHandle, std::unique_ptr<TreeNode>> fhmap;
+	// Map file handles to tree nodes
+	FileHandleMap fhmap;
 	char randbuf[RANDBUF_SIZE];
-
-	std::unique_ptr<TreeNode> removeFromMap(TreeNode *element)
-	{
-		auto range = fhmap.equal_range(element->getHandle());
-
-		for (auto it = range.first, e = range.second; it != e; ++it) {
-			if (it->second.get() == element) {
-				// First copy the node
-				auto node = std::move(it->second);
-				// Second erase the map entry
-				fhmap.erase(it);
-				return node;
-			}
-		}
-
-		throw TraceException("FileSystemMap: Element could not be deleted");
-	}
 
 	void createLookup(const Frame &req, const Frame &res);
 	void createFile(const Frame &req, const Frame &res);
@@ -85,11 +65,9 @@ private:
 			const std::string &name);
 	void createChangeFType(TreeNode *element, FType ftype);
 public:
-	FileSystemMap(Settings &sett, Stats &stats, Logger &logger) :
-			sett(sett), stats(stats), logger(logger)
+	FileSystemTree(Settings &sett, Stats &stats, Logger &logger) :
+			sett(sett), stats(stats), logger(logger), fhmap(GC_NODE_HARD_THRESHOLD)
 	{
-		fhmap.reserve(GC_NODE_HARD_THRESHOLD);
-
 		if (!sett.writeZero) {
 			FILE *fd = fopen("/dev/urandom", "r");
 			if (fread(randbuf, 1, RANDBUF_SIZE, fd) != RANDBUF_SIZE) {
@@ -155,4 +133,4 @@ public:
 	}
 };
 
-#endif /* FILESYSTEMMAP_H_ */
+#endif /* FILESYSTEMTREE_H_ */

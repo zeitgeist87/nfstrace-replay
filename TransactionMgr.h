@@ -22,10 +22,10 @@
 #include <unordered_map>
 #include <memory>
 
+#include "FileSystemTree.h"
 #include "Frame.h"
 #include "Settings.h"
 #include "Stats.h"
-#include "FileSystemMap.h"
 #include "Logger.h"
 
 #define GC_MAX_TRANSACTIONTIME		(5 * 60)
@@ -34,7 +34,7 @@ class TransactionMgr {
 private:
 	Settings &sett;
 	Stats &stats;
-	FileSystemMap fhmap;
+	FileSystemTree fhmap;
 	Logger &logger;
 	//map transaction ids to frames
 	std::unordered_map<uint32_t, std::unique_ptr<const Frame>> transactions;

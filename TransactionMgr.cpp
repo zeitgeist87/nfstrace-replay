@@ -20,8 +20,8 @@
 #include <vector>
 
 #include "Frame.h"
-#include "FileSystemMap.h"
 #include "TransactionMgr.h"
+#include "FileSystemTree.h"
 
 using namespace std;
 
