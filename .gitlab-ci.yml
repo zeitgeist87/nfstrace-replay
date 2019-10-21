@@ -1,0 +1,31 @@
+image: $CI_REGISTRY_IMAGE
+
+stages:
+  - docker
+  - build
+
+variables:
+  DOCKER_DRIVER: overlay2
+
+build:docker:
+  stage: docker
+  image: docker:stable
+  tags:
+    - docker-build
+  services:
+    - docker:stable-dind
+  script:
+    - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+    - docker build --pull -t $CI_REGISTRY_IMAGE .
+    - docker push $CI_REGISTRY_IMAGE
+  only:
+    changes:
+      - Dockerfile
+
+build:
+  stage: build
+  script:
+    - make
+  artifacts:
+    paths:
+      - nfsreplay
