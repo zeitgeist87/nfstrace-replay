@@ -1,3 +1,3 @@
 FROM archlinux/base
 
-RUN pacman -Sy --noconfirm && pacman --noconfirm -S base-devel ncurses
+RUN pacman -Sy --noconfirm && pacman --needed --noconfirm -S base-devel ncurses
