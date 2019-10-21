@@ -1,3 +1,3 @@
-FROM alpine
+FROM archlinux/base
 
-RUN apk update && apk add --no-cache build-base ncurses-dev
+RUN pacman -Sy --noconfirm && pacman --noconfirm -S base-devel ncurses
