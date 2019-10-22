@@ -19,7 +19,7 @@
 #include <curses.h>
 #include <execinfo.h>  //needed for bailout
 #include <fcntl.h>
-#include <signal.h>
+#include <csignal>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -74,17 +74,17 @@ void handler(int sig) {
 
 static volatile sig_atomic_t pauseExecution = 0;
 
-void sigint_handler(int sig) {
+void sigint_handler(int) {
   if (pauseExecution == 0) pauseExecution = 1;
 }
 
 static FILE *openInputFile(char *filename) {
   struct stat st;
-  FILE *res = NULL;
+  FILE *res = nullptr;
 
   if (!strcmp(filename, "-")) return stdin;
 
-  if (stat(filename, &st)) return NULL;
+  if (stat(filename, &st)) return nullptr;
 
   /*
    * child processes inherit this so
@@ -244,7 +244,7 @@ int main(int argc, char **argv) {
   Parser parser;
 
   try {
-    while (fgets(line, sizeof(line), input) != NULL) {
+    while (fgets(line, sizeof(line), input) != nullptr) {
       stats.linesRead++;
 
       if (!*line) continue;

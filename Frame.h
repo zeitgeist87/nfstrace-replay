@@ -115,21 +115,21 @@ class Frame {
 
   void setAttribute(const char *name, char *token) {
     if (!count && (!strcmp(name, "count") || !strcmp(name, "tcount"))) {
-      count = strtoul(token, NULL, 16);
+      count = strtoul(token, nullptr, 16);
     } else if (this->name.empty() &&
                (!strcmp(name, "name") || !strcmp(name, "fn"))) {
       this->name = token;
     } else if (!size_occured && !strcmp(name, "size")) {
       // only read first size
       size_occured = true;
-      size = strtoull(token, NULL, 16);
+      size = strtoull(token, nullptr, 16);
     } else if (ftype == NOFILE && !strcmp(name, "ftype")) {
       // only read first ftype
       ftype = (FType)atoi(token);
     } else if (!strcmp(token, "LONGPKT")) {
       truncated = true;
     } else if (!offset && (!strcmp(name, "off") || !strcmp(name, "offset"))) {
-      offset = strtoull(token, NULL, 16);
+      offset = strtoull(token, nullptr, 16);
     } else if (fh.empty() && !strcmp(name, "fh")) {
       fh = token;
     } else if (fh2.empty() && !strcmp(name, "fh2")) {
@@ -139,11 +139,11 @@ class Frame {
                 !strcmp(name, "sdata"))) {
       name2 = token;
     } else if (!mode && !strcmp(name, "mode")) {
-      mode = 0x1FF & strtoul(token, NULL, 16);
+      mode = 0x1FF & strtoul(token, nullptr, 16);
     } else if (!atime && !strcmp(name, "atime")) {
-      atime = strtoull(token, NULL, 10);
+      atime = strtoull(token, nullptr, 10);
     } else if (!mtime && !strcmp(name, "mtime")) {
-      mtime = strtoull(token, NULL, 10);
+      mtime = strtoull(token, nullptr, 10);
     }
   }
 };

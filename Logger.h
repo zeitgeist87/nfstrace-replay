@@ -25,7 +25,7 @@
 #include "ConsoleDisplay.h"
 
 class Logger {
-  ConsoleDisplay *disp = 0;
+  ConsoleDisplay *disp = nullptr;
 
  public:
   void setDisplay(ConsoleDisplay *disp) { this->disp = disp; }

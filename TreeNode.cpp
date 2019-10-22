@@ -85,13 +85,13 @@ void TreeNode::writeToSize(uint64_t size) {
 
 TreeNode *TreeNode::getChild(const std::string &name) const {
   auto it = children.find(name);
-  if (it == children.end()) return 0;
+  if (it == children.end()) return nullptr;
   return it->second;
 }
 
 bool TreeNode::isChildCreated() const {
-  for (auto it = children.begin(), e = children.end(); it != e; ++it) {
-    if (it->second->isCreated()) return true;
+  for (const auto & it : children) {
+    if (it.second->isCreated()) return true;
   }
   return false;
 }
@@ -122,7 +122,7 @@ void TreeNode::removeChild(TreeNode *child) {
     throw TraceException("TreeNode: Cannot find element");
 
   children.erase(it);
-  child->parent = 0;
+  child->parent = nullptr;
 }
 
 void TreeNode::addChild(TreeNode *child) {

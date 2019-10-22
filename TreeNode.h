@@ -19,7 +19,7 @@
 #ifndef TREENODE_H_
 #define TREENODE_H_
 
-#include <stdint.h>
+#include <cstdint>
 
 #include <cstdio>
 #include <ctime>
@@ -46,7 +46,7 @@ class TreeNode {
   static void setLogger(Logger *l) { logger = l; }
 
   TreeNode(const FileHandle &fh, int64_t timestamp)
-      : parent(0),
+      : parent(nullptr),
         name(fh),
         fh(fh),
         size(0),
@@ -57,7 +57,7 @@ class TreeNode {
   }
 
   TreeNode(const FileHandle &fh, const std::string &name, int64_t timestamp)
-      : parent(0),
+      : parent(nullptr),
         name(name),
         fh(fh),
         size(0),
@@ -69,7 +69,7 @@ class TreeNode {
   }
 
   void setLastAccess(int64_t timestamp) { last_access = timestamp; }
-  int64_t getLastAccess() const { return last_access; }
+  [[nodiscard]] int64_t getLastAccess() const { return last_access; }
 
   std::map<std::string, TreeNode *>::iterator children_begin() {
     return children.begin();
@@ -86,15 +86,15 @@ class TreeNode {
   void setSize(uint64_t s) { size = s; }
 
   void clearChildren() {
-    for (auto i = children.begin(), e = children.end(); i != e; ++i) {
-      i->second->parent = 0;
+    for (auto & i : children) {
+      i.second->parent = nullptr;
     }
 
     children.clear();
   }
 
-  bool hasChildren() const { return !children.empty(); }
-  bool isDeletable() const { return children.empty(); }
+  [[nodiscard]] bool hasChildren() const { return !children.empty(); }
+  [[nodiscard]] bool isDeletable() const { return children.empty(); }
 
   void setHandle(const FileHandle &handle) {
     if (handle.empty()) throw TraceException("TreeNode: Empty fh not allowed");
@@ -111,18 +111,18 @@ class TreeNode {
     parent->addChild(this);
   }
 
-  bool isCreated() const { return created; }
+  [[nodiscard]] bool isCreated() const { return created; }
   void setCreated(bool created) { this->created = created; }
-  bool isDir() const { return dir; }
+  [[nodiscard]] bool isDir() const { return dir; }
   void setDir(bool dir) { this->dir = dir; }
 
   void setName(const std::string &name);
   void addChild(TreeNode *child);
   void removeChild(TreeNode *child);
   void deleteChild(TreeNode *child);
-  TreeNode *getChild(const std::string &name) const;
+  [[nodiscard]] TreeNode *getChild(const std::string &name) const;
 
-  bool isChildCreated() const;
+  [[nodiscard]] bool isChildCreated() const;
   void writeToSize(uint64_t size);
   void clearEmptyDir();
   std::string calcPath();

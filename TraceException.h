@@ -22,12 +22,13 @@
 #include <execinfo.h>
 
 #include <exception>
+#include <utility>
 
 class TraceException : public std::exception {
   std::string message;
 
  public:
-  TraceException(std::string msg) : message(msg) {
+  TraceException(std::string msg) : message(std::move(msg)) {
     void *array[100];
     int size = backtrace(array, 100);
 
@@ -43,7 +44,7 @@ class TraceException : public std::exception {
     }
   }
 
-  virtual const char *what() const throw() { return message.c_str(); }
+  [[nodiscard]] const char *what() const noexcept override { return message.c_str(); }
 };
 
 #endif /* TRACEEXCEPTION_H_ */

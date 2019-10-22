@@ -66,7 +66,7 @@ class FileHandleInt {
     return *this;
   }
 
-  bool empty() const { return handle == 0; }
+  [[nodiscard]] bool empty() const { return handle == 0; }
   void clear() { handle = 0; }
 
   /*
@@ -92,6 +92,6 @@ struct hash<FileHandleInt> {
 }  // namespace std
 
 // typedef std::string FileHandle;
-typedef FileHandleInt FileHandle;
+using FileHandle = FileHandleInt;
 
 #endif /* FILEHANDLE_H_ */

@@ -28,9 +28,9 @@
 std::unique_ptr<Frame> Parser::parse(char *line) {
   char *pos = line;
   char *token = line;
-  char *src = 0;
-  char *dest = 0;
-  char *last_token = 0;
+  char *src = nullptr;
+  char *dest = nullptr;
+  char *last_token = nullptr;
   int count = 0;
   bool eol = false;
 
@@ -54,7 +54,7 @@ std::unique_ptr<Frame> Parser::parse(char *line) {
 
     switch (count) {
       case 0:
-        frame->time = strtoull(token, NULL, 10);
+        frame->time = strtoull(token, nullptr, 10);
         break;
       case 1:
         src = token;
@@ -81,7 +81,7 @@ std::unique_ptr<Frame> Parser::parse(char *line) {
         }
         break;
       case 5:
-        frame->xid = strtoul(token, NULL, 16);
+        frame->xid = strtoul(token, nullptr, 16);
         break;
       /*case 6:
                // cannot use opcode cause it is different for R2 R3

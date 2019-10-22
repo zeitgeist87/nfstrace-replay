@@ -35,10 +35,10 @@ class ConsoleDisplay {
   Stats &stats;
   TransactionMgr &transMgr;
 
-  WINDOW *timeWin = 0;
-  WINDOW *debugWin = 0;
-  WINDOW *boxWin = 0;
-  WINDOW *logWin = 0;
+  WINDOW *timeWin = nullptr;
+  WINDOW *debugWin = nullptr;
+  WINDOW *boxWin = nullptr;
+  WINDOW *logWin = nullptr;
 
   int64_t last_print = 0;
 
@@ -58,10 +58,10 @@ class ConsoleDisplay {
       endwin();
     }
 
-    timeWin = 0;
-    debugWin = 0;
-    boxWin = 0;
-    logWin = 0;
+    timeWin = nullptr;
+    debugWin = nullptr;
+    boxWin = nullptr;
+    logWin = nullptr;
   }
 
   void error(const char *msg) { log("%s: %s\n", msg, strerror(errno)); }

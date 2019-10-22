@@ -39,7 +39,7 @@ class Parser {
     char *pEnd;
     uint32_t first = strtoul(token, &pEnd, 16);
     pEnd++;
-    uint32_t second = strtoul(pEnd, NULL, 16);
+    uint32_t second = strtoul(pEnd, nullptr, 16);
     return (first << 16) | second;
   }
 
