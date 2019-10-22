@@ -90,7 +90,7 @@ TreeNode *TreeNode::getChild(const std::string &name) const {
 }
 
 bool TreeNode::isChildCreated() const {
-  for (const auto & it : children) {
+  for (const auto &it : children) {
     if (it.second->isCreated()) return true;
   }
   return false;

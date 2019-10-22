@@ -528,7 +528,7 @@ void FileSystemTree::gc(int64_t time) {
                        : time - GC_DISCARD_THRESHOLD;
 
   // Clear up old unused file handlers
-  for (auto & it : fhmap) {
+  for (auto &it : fhmap) {
     TreeNode *element = it.second.get();
     if (recursive_tree_gc(element, del_list, ko_time) && element->getParent()) {
       element->getParent()->removeChild(element);

@@ -19,10 +19,10 @@
 #include <curses.h>
 #include <execinfo.h>  //needed for bailout
 #include <fcntl.h>
-#include <csignal>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <csignal>
 #include <cstdio>
 #include <cstring>
 #include <string>

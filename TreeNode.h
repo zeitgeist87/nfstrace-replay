@@ -20,7 +20,6 @@
 #define TREENODE_H_
 
 #include <cstdint>
-
 #include <cstdio>
 #include <ctime>
 #include <map>
@@ -86,7 +85,7 @@ class TreeNode {
   void setSize(uint64_t s) { size = s; }
 
   void clearChildren() {
-    for (auto & i : children) {
+    for (auto &i : children) {
       i.second->parent = nullptr;
     }
 
