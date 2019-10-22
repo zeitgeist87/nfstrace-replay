@@ -20,30 +20,30 @@
 #define TRACEEXCEPTION_H_
 
 #include <execinfo.h>
+
 #include <exception>
 
 class TraceException : public std::exception {
-	std::string message;
-public:
-	TraceException(std::string msg) : message(msg) {
-		void *array[100];
-		int size = backtrace(array, 100);
+  std::string message;
 
-		char **strings = backtrace_symbols(array, size);
-		if (strings) {
-			for (int i = 1; i < size; ++i) {
-				message += '\n';
-				message += strings[i];
-			}
+ public:
+  TraceException(std::string msg) : message(msg) {
+    void *array[100];
+    int size = backtrace(array, 100);
 
-			// the individual strings do not have to be freed
-			free(strings);
-		}
-	}
+    char **strings = backtrace_symbols(array, size);
+    if (strings) {
+      for (int i = 1; i < size; ++i) {
+        message += '\n';
+        message += strings[i];
+      }
 
-	virtual const char* what() const throw() {
-		return message.c_str();
-	}
+      // the individual strings do not have to be freed
+      free(strings);
+    }
+  }
+
+  virtual const char *what() const throw() { return message.c_str(); }
 };
 
 #endif /* TRACEEXCEPTION_H_ */

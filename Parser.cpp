@@ -16,106 +16,104 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "Parser.h"
+
+#include <cstring>
 #include <map>
 #include <memory>
 #include <string>
-#include <cstring>
-#include "Parser.h"
+
 #include "TraceException.h"
 
-std::unique_ptr<Frame> Parser::parse(char *line)
-{
-	char *pos = line;
-	char *token = line;
-	char *src = 0;
-	char *dest = 0;
-	char *last_token = 0;
-	int count = 0;
-	bool eol = false;
+std::unique_ptr<Frame> Parser::parse(char *line) {
+  char *pos = line;
+  char *token = line;
+  char *src = 0;
+  char *dest = 0;
+  char *last_token = 0;
+  int count = 0;
+  bool eol = false;
 
-	if (!isdigit(*pos))
-		return std::unique_ptr<Frame>(nullptr);
+  if (!isdigit(*pos)) return std::unique_ptr<Frame>(nullptr);
 
-	auto frame = std::make_unique<Frame>();
+  auto frame = std::make_unique<Frame>();
 
-	while (!eol) {
-		if (*pos == '"') {
-			//if it starts with " ignore space until end "
-			pos++;
-			token++;
-			while (*pos != 0 && *pos != '"')
-				pos++;
-		} else {
-			while (*pos != 0 && *pos != ' ')
-				pos++;
-		}
+  while (!eol) {
+    if (*pos == '"') {
+      // if it starts with " ignore space until end "
+      pos++;
+      token++;
+      while (*pos != 0 && *pos != '"') pos++;
+    } else {
+      while (*pos != 0 && *pos != ' ') pos++;
+    }
 
-		if (*pos == 0)
-			eol = true;
+    if (*pos == 0) eol = true;
 
-		*pos = 0;
+    *pos = 0;
 
-		switch (count) {
-		case 0:
-			frame->time = strtoull(token, NULL, 10);
-			break;
-		case 1:
-			src = token;
-			break;
-		case 2:
-			dest = token;
-			break;
-		case 4:
-			//protocol
-			if (*token == 'R') {
-				if (token[1] == '2')
-					frame->protocol = R2;
-				else
-					frame->protocol = R3;
+    switch (count) {
+      case 0:
+        frame->time = strtoull(token, NULL, 10);
+        break;
+      case 1:
+        src = token;
+        break;
+      case 2:
+        dest = token;
+        break;
+      case 4:
+        // protocol
+        if (*token == 'R') {
+          if (token[1] == '2')
+            frame->protocol = R2;
+          else
+            frame->protocol = R3;
 
-				frame->client = parseClientId(dest);
-			} else if (*token == 'C') {
-				if (token[1] == '2')
-					frame->protocol = C2;
-				else
-					frame->protocol = C3;
+          frame->client = parseClientId(dest);
+        } else if (*token == 'C') {
+          if (token[1] == '2')
+            frame->protocol = C2;
+          else
+            frame->protocol = C3;
 
-				frame->client = parseClientId(src);
-			}
-			break;
-		case 5:
-			frame->xid = strtoul(token, NULL, 16);
-			break;
-		/*case 6:
-			 // cannot use opcode cause it is different for R2 R3
-			 frame.operation = (Operation) strtoul(token, NULL, 16);
-			 break;*/
-		case 7:
-			frame->operation = parseOpId(token);
-			break;
-		case 8:
-			if (frame->protocol == R2 || frame->protocol == R3) {
-				if (!strcmp(token, "OK"))
-					frame->status = FOK;
-				else
-					frame->status = FERROR;
-			}
-			break;
-		}
+          frame->client = parseClientId(src);
+        }
+        break;
+      case 5:
+        frame->xid = strtoul(token, NULL, 16);
+        break;
+      /*case 6:
+               // cannot use opcode cause it is different for R2 R3
+               frame.operation = (Operation) strtoul(token, NULL, 16);
+               break;*/
+      case 7:
+        frame->operation = parseOpId(token);
+        break;
+      case 8:
+        if (frame->protocol == R2 || frame->protocol == R3) {
+          if (!strcmp(token, "OK"))
+            frame->status = FOK;
+          else
+            frame->status = FERROR;
+        }
+        break;
+    }
 
-		if (last_token && (count > 8 || (count == 8 && (frame->protocol == R2 || frame->protocol == R3)))) {
-			frame->setAttribute(last_token, token);
-		}
+    if (last_token && (count > 8 || (count == 8 && (frame->protocol == R2 ||
+                                                    frame->protocol == R3)))) {
+      frame->setAttribute(last_token, token);
+    }
 
-		pos++;
-		last_token = token;
-		token = pos;
-		count++;
-	}
+    pos++;
+    last_token = token;
+    token = pos;
+    count++;
+  }
 
-	if (frame->protocol == NOPROT) {
-		return std::unique_ptr<Frame>(nullptr);
-	}
+  if (frame->protocol == NOPROT) {
+    return std::unique_ptr<Frame>(nullptr);
+  }
 
-	return frame;
+  return frame;
 }

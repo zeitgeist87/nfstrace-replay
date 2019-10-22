@@ -19,8 +19,9 @@
 #ifndef CONSOLEDISPLAY_H_
 #define CONSOLEDISPLAY_H_
 
-#include <cerrno>
 #include <curses.h>
+
+#include <cerrno>
 
 #include "Frame.h"
 #include "Settings.h"
@@ -30,71 +31,63 @@ class Logger;
 class TransactionMgr;
 
 class ConsoleDisplay {
-	Settings &sett;
-	Stats &stats;
-	TransactionMgr &transMgr;
+  Settings &sett;
+  Stats &stats;
+  TransactionMgr &transMgr;
 
-	WINDOW *timeWin = 0;
-	WINDOW *debugWin = 0;
-	WINDOW *boxWin = 0;
-	WINDOW *logWin = 0;
+  WINDOW *timeWin = 0;
+  WINDOW *debugWin = 0;
+  WINDOW *boxWin = 0;
+  WINDOW *logWin = 0;
 
-	int64_t last_print = 0;
-public:
-	ConsoleDisplay(Settings &sett, Stats &stats, TransactionMgr &transMgr,
-			Logger &logger);
+  int64_t last_print = 0;
 
-	virtual ~ConsoleDisplay() {
-		destroy();
-	}
+ public:
+  ConsoleDisplay(Settings &sett, Stats &stats, TransactionMgr &transMgr,
+                 Logger &logger);
 
-	void destroy() {
-		// cleanup
-		if (timeWin)
-			delwin(timeWin);
-		if (debugWin)
-			delwin(debugWin);
-		if (logWin)
-			delwin(logWin);
-		if (boxWin) {
-			delwin(boxWin);
-			endwin();
-		}
+  virtual ~ConsoleDisplay() { destroy(); }
 
-		timeWin = 0;
-		debugWin = 0;
-		boxWin = 0;
-		logWin = 0;
-	}
+  void destroy() {
+    // cleanup
+    if (timeWin) delwin(timeWin);
+    if (debugWin) delwin(debugWin);
+    if (logWin) delwin(logWin);
+    if (boxWin) {
+      delwin(boxWin);
+      endwin();
+    }
 
-	void error(const char *msg) {
-		log("%s: %s\n", msg, strerror(errno));
-	}
+    timeWin = 0;
+    debugWin = 0;
+    boxWin = 0;
+    logWin = 0;
+  }
 
-	template<class... Args>
-	void log(const char *format, Args&&... args) {
-		static long i = 0;
-		wprintw(logWin, "%ld ", i);
-		wprintw(logWin, format, std::forward<Args>(args)...);
-		wrefresh(logWin);
-		i++;
-	}
+  void error(const char *msg) { log("%s: %s\n", msg, strerror(errno)); }
 
-	int pause() {
-		mvwprintw(timeWin, 0, 3,
-			  "PAUSE (press any key to continue or Q to quit)");
-		wrefresh(timeWin);
-		if (wgetch(stdscr) == 'q')
-			return 1;
+  template <class... Args>
+  void log(const char *format, Args &&... args) {
+    static long i = 0;
+    wprintw(logWin, "%ld ", i);
+    wprintw(logWin, format, std::forward<Args>(args)...);
+    wrefresh(logWin);
+    i++;
+  }
 
-		box(timeWin, 0, 0);
-		mvwprintw(timeWin, 0, 3, "Current Date");
-		wrefresh(timeWin);
+  int pause() {
+    mvwprintw(timeWin, 0, 3, "PAUSE (press any key to continue or Q to quit)");
+    wrefresh(timeWin);
+    if (wgetch(stdscr) == 'q') return 1;
 
-		return 0;
-	}
+    box(timeWin, 0, 0);
+    mvwprintw(timeWin, 0, 3, "Current Date");
+    wrefresh(timeWin);
 
-	void process(Frame *frame);
+    return 0;
+  }
+
+  void process(Frame *frame);
 };
 
 #endif /* CONSOLEDISPLAY_H_ */

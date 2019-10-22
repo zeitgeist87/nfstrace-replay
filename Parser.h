@@ -22,66 +22,66 @@
 #include <cstring>
 #include <map>
 #include <memory>
+
 #include "Frame.h"
 
 class Parser {
-private:
-	struct CompareCStrings {
-		bool operator()(const char* lhs, const char* rhs) const
-		{
-			return std::strcmp(lhs, rhs) < 0;
-		}
-	};
+ private:
+  struct CompareCStrings {
+    bool operator()(const char *lhs, const char *rhs) const {
+      return std::strcmp(lhs, rhs) < 0;
+    }
+  };
 
-	std::map<const char *, OpId, CompareCStrings> opmap;
+  std::map<const char *, OpId, CompareCStrings> opmap;
 
-	uint32_t parseClientId(const char *token) {
-		char *pEnd;
-		uint32_t first = strtoul(token, &pEnd, 16);
-		pEnd++;
-		uint32_t second = strtoul(pEnd, NULL, 16);
-		return (first << 16) | second;
-	}
+  uint32_t parseClientId(const char *token) {
+    char *pEnd;
+    uint32_t first = strtoul(token, &pEnd, 16);
+    pEnd++;
+    uint32_t second = strtoul(pEnd, NULL, 16);
+    return (first << 16) | second;
+  }
 
-	OpId parseOpId(char *op) {
-		char *pos = op;
-		while (*pos != 0) {
-			*pos = tolower(*pos);
-			pos++;
-		}
-		auto it = opmap.find(op);
-		if (it != opmap.end())
-			return it->second;
-		return NULLOP;
-	}
-public:
-	Parser() {
-		opmap["null"] = NULLOP;
-		opmap["getattr"] = GETATTR;
-		opmap["setattr"] = SETATTR;
-		opmap["lookup"] = LOOKUP;
-		opmap["access"] = ACCESS;
-		opmap["read"] = READ;
-		opmap["readlink"] = READLINK;
-		opmap["write"] = WRITE;
-		opmap["create"] = CREATE;
-		opmap["mkdir"] = MKDIR;
-		opmap["symlink"] = SYMLINK;
-		opmap["mknod"] = MKNOD;
-		opmap["remove"] = REMOVE;
-		opmap["rmdir"] = RMDIR;
-		opmap["rename"] = RENAME;
-		opmap["link"] = LINK;
-		opmap["readdir"] = READDIR;
-		opmap["readdirp"] = READDIRPLUS;
-		opmap["readdirplus"] = READDIRPLUS;
-		opmap["fsstat"] = FSSTAT;
-		opmap["fsinfo"] = FSINFO;
-		opmap["pathconf"] = PATHCONF;
-		opmap["commit"] = COMMIT;
-	}
+  OpId parseOpId(char *op) {
+    char *pos = op;
+    while (*pos != 0) {
+      *pos = tolower(*pos);
+      pos++;
+    }
+    auto it = opmap.find(op);
+    if (it != opmap.end()) return it->second;
+    return NULLOP;
+  }
 
-	std::unique_ptr<Frame> parse(char *line);
+ public:
+  Parser() {
+    opmap["null"] = NULLOP;
+    opmap["getattr"] = GETATTR;
+    opmap["setattr"] = SETATTR;
+    opmap["lookup"] = LOOKUP;
+    opmap["access"] = ACCESS;
+    opmap["read"] = READ;
+    opmap["readlink"] = READLINK;
+    opmap["write"] = WRITE;
+    opmap["create"] = CREATE;
+    opmap["mkdir"] = MKDIR;
+    opmap["symlink"] = SYMLINK;
+    opmap["mknod"] = MKNOD;
+    opmap["remove"] = REMOVE;
+    opmap["rmdir"] = RMDIR;
+    opmap["rename"] = RENAME;
+    opmap["link"] = LINK;
+    opmap["readdir"] = READDIR;
+    opmap["readdirp"] = READDIRPLUS;
+    opmap["readdirplus"] = READDIRPLUS;
+    opmap["fsstat"] = FSSTAT;
+    opmap["fsinfo"] = FSINFO;
+    opmap["pathconf"] = PATHCONF;
+    opmap["commit"] = COMMIT;
+  }
+
+  std::unique_ptr<Frame> parse(char *line);
 };
 
 #endif /* PARSER_H_ */

@@ -19,116 +19,114 @@
 #ifndef TREENODE_H_
 #define TREENODE_H_
 
-#include <string>
-#include <map>
-#include <ctime>
 #include <stdint.h>
+
 #include <cstdio>
+#include <ctime>
+#include <map>
+#include <string>
 
 #include "FileHandle.h"
 #include "Logger.h"
 #include "TraceException.h"
 
 class TreeNode {
-private:
-	static Logger *logger;
-	TreeNode *parent;
-	std::string name;
-	FileHandle fh;
-	uint64_t size;
-	bool created;
-	bool dir;
-	std::map<std::string, TreeNode *> children;
-	int64_t last_access;
+ private:
+  static Logger *logger;
+  TreeNode *parent;
+  std::string name;
+  FileHandle fh;
+  uint64_t size;
+  bool created;
+  bool dir;
+  std::map<std::string, TreeNode *> children;
+  int64_t last_access;
 
-public:
-	static void setLogger(Logger *l) {
-		logger = l;
-	}
+ public:
+  static void setLogger(Logger *l) { logger = l; }
 
-	TreeNode(const FileHandle &fh, int64_t timestamp) :
-			parent(0), name(fh), fh(fh),  size(0), created(false),
-			dir(false), last_access(timestamp)
-	{
-		if (name.empty())
-			throw TraceException("TreeNode: Empty name not allowed");
-	}
+  TreeNode(const FileHandle &fh, int64_t timestamp)
+      : parent(0),
+        name(fh),
+        fh(fh),
+        size(0),
+        created(false),
+        dir(false),
+        last_access(timestamp) {
+    if (name.empty()) throw TraceException("TreeNode: Empty name not allowed");
+  }
 
-	TreeNode(const FileHandle &fh, const std::string &name, int64_t timestamp) :
-			parent(0), name(name), fh(fh), size(0), created(false),
-			dir(false), last_access(timestamp)
-	{
-		if (fh.empty() || name.empty())
-			throw TraceException("TreeNode: Empty name not allowed");
-	}
+  TreeNode(const FileHandle &fh, const std::string &name, int64_t timestamp)
+      : parent(0),
+        name(name),
+        fh(fh),
+        size(0),
+        created(false),
+        dir(false),
+        last_access(timestamp) {
+    if (fh.empty() || name.empty())
+      throw TraceException("TreeNode: Empty name not allowed");
+  }
 
-	void setLastAccess(int64_t timestamp) { last_access = timestamp; }
-	int64_t getLastAccess() const { return last_access; }
+  void setLastAccess(int64_t timestamp) { last_access = timestamp; }
+  int64_t getLastAccess() const { return last_access; }
 
-	std::map<std::string, TreeNode *>::iterator children_begin() {
-		return children.begin();
-	}
+  std::map<std::string, TreeNode *>::iterator children_begin() {
+    return children.begin();
+  }
 
-	std::map<std::string, TreeNode *>::iterator children_end() {
-		return children.end();
-	}
+  std::map<std::string, TreeNode *>::iterator children_end() {
+    return children.end();
+  }
 
-	TreeNode *getParent() { return parent; }
-	std::string &getName() { return name; }
-	FileHandle &getHandle() { return fh; }
-	uint64_t getSize() { return size; }
-	void setSize(uint64_t s) { size = s; }
+  TreeNode *getParent() { return parent; }
+  std::string &getName() { return name; }
+  FileHandle &getHandle() { return fh; }
+  uint64_t getSize() { return size; }
+  void setSize(uint64_t s) { size = s; }
 
-	void clearChildren()
-	{
-		for (auto i = children.begin(), e = children.end(); i != e;
-				++i) {
-			i->second->parent = 0;
-		}
+  void clearChildren() {
+    for (auto i = children.begin(), e = children.end(); i != e; ++i) {
+      i->second->parent = 0;
+    }
 
-		children.clear();
-	}
+    children.clear();
+  }
 
-	bool hasChildren() const { return !children.empty(); }
-	bool isDeletable() const { return children.empty();}
+  bool hasChildren() const { return !children.empty(); }
+  bool isDeletable() const { return children.empty(); }
 
-	void setHandle(const FileHandle &handle)
-	{
-		if (handle.empty())
-			throw TraceException("TreeNode: Empty fh not allowed");
-		fh = handle;
-	}
+  void setHandle(const FileHandle &handle) {
+    if (handle.empty()) throw TraceException("TreeNode: Empty fh not allowed");
+    fh = handle;
+  }
 
-	void setParent(TreeNode *p)
-	{
-		if (!p)
-			throw TraceException("TreeNode: Tried to set empty parent");
+  void setParent(TreeNode *p) {
+    if (!p) throw TraceException("TreeNode: Tried to set empty parent");
 
-		if (parent)
-			parent->removeChild(this);
+    if (parent) parent->removeChild(this);
 
-		parent = p;
+    parent = p;
 
-		parent->addChild(this);
-	}
+    parent->addChild(this);
+  }
 
-	bool isCreated() const { return created; }
-	void setCreated(bool created) { this->created = created; }
-	bool isDir() const { return dir; }
-	void setDir(bool dir) { this->dir = dir; }
+  bool isCreated() const { return created; }
+  void setCreated(bool created) { this->created = created; }
+  bool isDir() const { return dir; }
+  void setDir(bool dir) { this->dir = dir; }
 
-	void setName(const std::string &name);
-	void addChild(TreeNode *child);
-	void removeChild(TreeNode *child);
-	void deleteChild(TreeNode *child);
-	TreeNode *getChild(const std::string &name) const;
+  void setName(const std::string &name);
+  void addChild(TreeNode *child);
+  void removeChild(TreeNode *child);
+  void deleteChild(TreeNode *child);
+  TreeNode *getChild(const std::string &name) const;
 
-	bool isChildCreated() const;
-	void writeToSize(uint64_t size);
-	void clearEmptyDir();
-	std::string calcPath();
-	std::string makePath(int mode = 0755);
-
+  bool isChildCreated() const;
+  void writeToSize(uint64_t size);
+  void clearEmptyDir();
+  std::string calcPath();
+  std::string makePath(int mode = 0755);
 };
 
 #endif /* TREENODE_H_ */

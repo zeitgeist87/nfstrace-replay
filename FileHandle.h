@@ -19,80 +19,79 @@
 #ifndef FILEHANDLE_H_
 #define FILEHANDLE_H_
 
-#include <cstring>
 #include <cstdio>
-#include <string>
+#include <cstring>
 #include <functional>
+#include <string>
 
 class FileHandleInt {
-private:
-	uint64_t handle = 0;
-public:
-	bool operator== (const FileHandleInt &other) const {
-		return handle == other.handle;
-	}
+ private:
+  uint64_t handle = 0;
 
-	bool operator!= (const FileHandleInt &other) const {
-		return handle != other.handle;
-	}
+ public:
+  bool operator==(const FileHandleInt &other) const {
+    return handle == other.handle;
+  }
 
-	FileHandleInt &operator=(char *token) {
-		/*
-		 * the nfs_handle is usually 64 bytes long,
-		 * but most of it is constant, because the device id
-		 * and other constants rarely change
-		 *
-		 * the constant parts always add up to the same value
-		 * the variable parts like inode number should fit into 64 bits
-		 */
-		char tmp;
-		char *tmp2, *tokptr = token;
-		uint64_t res = 0;
+  bool operator!=(const FileHandleInt &other) const {
+    return handle != other.handle;
+  }
 
-		while (*tokptr) {
-			tmp = tokptr[16];
-			tokptr[16] = 0;
-			res += strtoull(tokptr, &tmp2, 16);
-			tokptr[16] = tmp;
-			tokptr = tmp2;
-		}
+  FileHandleInt &operator=(char *token) {
+    /*
+     * the nfs_handle is usually 64 bytes long,
+     * but most of it is constant, because the device id
+     * and other constants rarely change
+     *
+     * the constant parts always add up to the same value
+     * the variable parts like inode number should fit into 64 bits
+     */
+    char tmp;
+    char *tmp2, *tokptr = token;
+    uint64_t res = 0;
 
-		// res added up to 0 by accident, but 0 is not allowed
-		if (!res && tokptr != token)
-			res = 1;
+    while (*tokptr) {
+      tmp = tokptr[16];
+      tokptr[16] = 0;
+      res += strtoull(tokptr, &tmp2, 16);
+      tokptr[16] = tmp;
+      tokptr = tmp2;
+    }
 
-		handle = res;
+    // res added up to 0 by accident, but 0 is not allowed
+    if (!res && tokptr != token) res = 1;
 
-		return *this;
-	}
+    handle = res;
 
-	bool empty() const { return handle == 0; }
-	void clear() { handle = 0; }
+    return *this;
+  }
 
-	/*
-	 * conversion operator to std::string
-	 */
-	operator std::string() const {
-		char hexString[2 * sizeof(uint64_t) + 3];
-		// returns decimal value of hex
-		sprintf(hexString,"0x%lX", handle);
-		return hexString;
-	}
+  bool empty() const { return handle == 0; }
+  void clear() { handle = 0; }
 
-	friend struct std::hash<FileHandleInt>;
+  /*
+   * conversion operator to std::string
+   */
+  operator std::string() const {
+    char hexString[2 * sizeof(uint64_t) + 3];
+    // returns decimal value of hex
+    sprintf(hexString, "0x%lX", handle);
+    return hexString;
+  }
+
+  friend struct std::hash<FileHandleInt>;
 };
 
 namespace std {
-template<>
+template <>
 struct hash<FileHandleInt> {
-	std::size_t operator()(FileHandleInt const& h) const {
-		return std::hash<uint64_t>()(h.handle);
-	}
+  std::size_t operator()(FileHandleInt const &h) const {
+    return std::hash<uint64_t>()(h.handle);
+  }
 };
-}
+}  // namespace std
 
-//typedef std::string FileHandle;
+// typedef std::string FileHandle;
 typedef FileHandleInt FileHandle;
-
 
 #endif /* FILEHANDLE_H_ */

@@ -19,45 +19,40 @@
 #ifndef TRANSACTIONMGR_H_
 #define TRANSACTIONMGR_H_
 
-#include <unordered_map>
 #include <memory>
+#include <unordered_map>
 
 #include "FileSystemTree.h"
 #include "Frame.h"
+#include "Logger.h"
 #include "Settings.h"
 #include "Stats.h"
-#include "Logger.h"
 
-#define GC_MAX_TRANSACTIONTIME		(5 * 60)
+#define GC_MAX_TRANSACTIONTIME (5 * 60)
 
 class TransactionMgr {
-private:
-	Settings &sett;
-	Stats &stats;
-	FileSystemTree fhmap;
-	Logger &logger;
-	//map transaction ids to frames
-	std::unordered_map<uint32_t, std::unique_ptr<const Frame>> transactions;
+ private:
+  Settings &sett;
+  Stats &stats;
+  FileSystemTree fhmap;
+  Logger &logger;
+  // map transaction ids to frames
+  std::unordered_map<uint32_t, std::unique_ptr<const Frame>> transactions;
 
-	int64_t last_sync = 0;
-	int64_t last_gc = 0;
+  int64_t last_sync = 0;
+  int64_t last_gc = 0;
 
-	void processRequest(std::unique_ptr<const Frame> &&req);
-	void processResponse(std::unique_ptr<const Frame> &&res);
+  void processRequest(std::unique_ptr<const Frame> &&req);
+  void processResponse(std::unique_ptr<const Frame> &&res);
 
-public:
-	TransactionMgr(Settings &sett, Stats &stats, Logger &logger) :
-			sett(sett), stats(stats), fhmap(sett, stats, logger),
-			logger(logger) {
+ public:
+  TransactionMgr(Settings &sett, Stats &stats, Logger &logger)
+      : sett(sett), stats(stats), fhmap(sett, stats, logger), logger(logger) {}
 
-	}
+  uint64_t size() { return fhmap.size(); }
 
-	uint64_t size() {
-		return fhmap.size();
-	}
-
-	int process(std::unique_ptr<const Frame> &&frame);
-	void gc(int64_t time);
+  int process(std::unique_ptr<const Frame> &&frame);
+  void gc(int64_t time);
 };
 
 #endif /* TRANSACTIONMGR_H_ */

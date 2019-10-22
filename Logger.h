@@ -25,21 +25,22 @@
 #include "ConsoleDisplay.h"
 
 class Logger {
-	ConsoleDisplay *disp = 0;
-public:
-	void setDisplay(ConsoleDisplay *disp) { this->disp = disp; }
-	void error(const char *msg) {
-		if (disp)
-			disp->log("%s: %s\n", msg, strerror(errno));
-		else
-			perror(msg);
-	}
-	void log(const char *msg) {
-		if (disp)
-			disp->log("%s\n", msg);
-		else
-			puts(msg);
-	}
+  ConsoleDisplay *disp = 0;
+
+ public:
+  void setDisplay(ConsoleDisplay *disp) { this->disp = disp; }
+  void error(const char *msg) {
+    if (disp)
+      disp->log("%s: %s\n", msg, strerror(errno));
+    else
+      perror(msg);
+  }
+  void log(const char *msg) {
+    if (disp)
+      disp->log("%s\n", msg);
+    else
+      puts(msg);
+  }
 };
 
 #endif /* LOGGER_H_ */

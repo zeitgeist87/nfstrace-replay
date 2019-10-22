@@ -16,136 +16,139 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "TransactionMgr.h"
+
 #include <unordered_map>
 #include <vector>
 
-#include "Frame.h"
-#include "TransactionMgr.h"
 #include "FileSystemTree.h"
+#include "Frame.h"
 
 using namespace std;
 
 void TransactionMgr::processRequest(std::unique_ptr<const Frame> &&req) {
-	switch (req->operation) {
-	case LOOKUP:
-	case CREATE:
-	case MKDIR:
-	case REMOVE:
-	case RMDIR:
-		if (!req->fh.empty() && !req->name.empty()) {
-			// Important: insert does not update value
-			transactions[req->xid] = std::move(req);
-			return;
-		}
-		break;
-	case ACCESS:
-	case GETATTR:
-	case WRITE:
-	case SETATTR:
-		if (!req->fh.empty()) {
-			transactions[req->xid] = std::move(req);;
-			return;
-		}
-		break;
-	case RENAME:
-		if (!req->fh.empty() && !req->fh2.empty() && !req->name.empty() && !req->name2.empty()) {
-			transactions[req->xid] = std::move(req);;
-			return;
-		}
-		break;
-	case LINK:
-		if (!req->fh.empty() && !req->fh2.empty() && !req->name.empty()) {
-			transactions[req->xid] = std::move(req);;
-			return;
-		}
-		break;
-	case SYMLINK:
-		if (!req->fh.empty() && !req->name.empty() && !req->name2.empty()) {
-			transactions[req->xid] = std::move(req);;
-			return;
-		}
-		break;
-	default:
-		break;
-	}
+  switch (req->operation) {
+    case LOOKUP:
+    case CREATE:
+    case MKDIR:
+    case REMOVE:
+    case RMDIR:
+      if (!req->fh.empty() && !req->name.empty()) {
+        // Important: insert does not update value
+        transactions[req->xid] = std::move(req);
+        return;
+      }
+      break;
+    case ACCESS:
+    case GETATTR:
+    case WRITE:
+    case SETATTR:
+      if (!req->fh.empty()) {
+        transactions[req->xid] = std::move(req);
+        ;
+        return;
+      }
+      break;
+    case RENAME:
+      if (!req->fh.empty() && !req->fh2.empty() && !req->name.empty() &&
+          !req->name2.empty()) {
+        transactions[req->xid] = std::move(req);
+        ;
+        return;
+      }
+      break;
+    case LINK:
+      if (!req->fh.empty() && !req->fh2.empty() && !req->name.empty()) {
+        transactions[req->xid] = std::move(req);
+        ;
+        return;
+      }
+      break;
+    case SYMLINK:
+      if (!req->fh.empty() && !req->name.empty() && !req->name2.empty()) {
+        transactions[req->xid] = std::move(req);
+        ;
+        return;
+      }
+      break;
+    default:
+      break;
+  }
 }
 
-void TransactionMgr::processResponse(std::unique_ptr<const Frame> &&res)
-{
-	auto transIt = transactions.find(res->xid);
-	if (transIt == transactions.end()) {
-		return;
-	}
+void TransactionMgr::processResponse(std::unique_ptr<const Frame> &&res) {
+  auto transIt = transactions.find(res->xid);
+  if (transIt == transactions.end()) {
+    return;
+  }
 
-	auto req = transIt->second.get();
+  auto req = transIt->second.get();
 
-	if (res->status != FOK || res->operation != req->operation ||
-	   res->time - req->time > GC_MAX_TRANSACTIONTIME) {
-		transactions.erase(transIt);
-		return;
-	}
+  if (res->status != FOK || res->operation != req->operation ||
+      res->time - req->time > GC_MAX_TRANSACTIONTIME) {
+    transactions.erase(transIt);
+    return;
+  }
 
-	fhmap.process(std::move(transIt->second), std::move(res));
-	transactions.erase(transIt);
+  fhmap.process(std::move(transIt->second), std::move(res));
+  transactions.erase(transIt);
 }
 
 void TransactionMgr::gc(int64_t time) {
-	int64_t trans_ko_time = time - GC_MAX_TRANSACTIONTIME;
+  int64_t trans_ko_time = time - GC_MAX_TRANSACTIONTIME;
 
-	//clear up old transactions
-	for (auto it = transactions.begin(), e = transactions.end(); it != e;) {
-		if (it->second->time < trans_ko_time) {
-			transactions.erase(it++);
-		} else {
-			++it;
-		}
-	}
+  // clear up old transactions
+  for (auto it = transactions.begin(), e = transactions.end(); it != e;) {
+    if (it->second->time < trans_ko_time) {
+      transactions.erase(it++);
+    } else {
+      ++it;
+    }
+  }
 }
 
 int TransactionMgr::process(std::unique_ptr<const Frame> &&frame) {
-	int64_t time = frame->time;
+  int64_t time = frame->time;
 
-	// Sync every 10 minutes
-	if (!sett.noSync && last_sync + sett.syncMinutes * 60 < time) {
-		if (!fhmap.sync())
-			logger.error("Error syncing file system");
+  // Sync every 10 minutes
+  if (!sett.noSync && last_sync + sett.syncMinutes * 60 < time) {
+    if (!fhmap.sync()) logger.error("Error syncing file system");
 
-		last_sync = time;
-	}
+    last_sync = time;
+  }
 
-	if (sett.enableGC && ((last_gc + 60 * 60 * 12 < time
-				&& fhmap.size() > GC_NODE_THRESHOLD)
-				|| fhmap.size() > GC_NODE_HARD_THRESHOLD)) {
-		logger.log("RUNNING GC");
+  if (sett.enableGC &&
+      ((last_gc + 60 * 60 * 12 < time && fhmap.size() > GC_NODE_THRESHOLD) ||
+       fhmap.size() > GC_NODE_HARD_THRESHOLD)) {
+    logger.log("RUNNING GC");
 
-		fhmap.gc(time);
-		gc(time);
+    fhmap.gc(time);
+    gc(time);
 
-		last_gc = time;
-	}
+    last_gc = time;
+  }
 
-	if (sett.startTime < 0 && sett.startAfterDays > 0)
-		sett.startTime = time + (sett.startAfterDays * 24 * 60 * 60);
+  if (sett.startTime < 0 && sett.startAfterDays > 0)
+    sett.startTime = time + (sett.startAfterDays * 24 * 60 * 60);
 
-	if (sett.startTime == -1 || sett.startTime < time) {
-		if (frame->protocol == C3 || frame->protocol == C2) {
-			stats.requestsProcessed++;
-			processRequest(std::move(frame));
-		} else if (frame->protocol == R3 || frame->protocol == R2) {
-			stats.responsesProcessed++;
-			processResponse(std::move(frame));
-		}
-	}
+  if (sett.startTime == -1 || sett.startTime < time) {
+    if (frame->protocol == C3 || frame->protocol == C2) {
+      stats.requestsProcessed++;
+      processRequest(std::move(frame));
+    } else if (frame->protocol == R3 || frame->protocol == R2) {
+      stats.responsesProcessed++;
+      processResponse(std::move(frame));
+    }
+  }
 
-	if (sett.endTime < 0 && sett.endAfterDays > 0) {
-		if (sett.startTime > 0)
-			sett.endTime = sett.startTime + (sett.endAfterDays * 24 * 60 * 60);
-		else
-			sett.endTime = time + (sett.endAfterDays * 24 * 60 * 60);
-	}
+  if (sett.endTime < 0 && sett.endAfterDays > 0) {
+    if (sett.startTime > 0)
+      sett.endTime = sett.startTime + (sett.endAfterDays * 24 * 60 * 60);
+    else
+      sett.endTime = time + (sett.endAfterDays * 24 * 60 * 60);
+  }
 
-	if (sett.endTime != -1 && sett.endTime < time)
-		return 1;
+  if (sett.endTime != -1 && sett.endTime < time) return 1;
 
-	return 0;
+  return 0;
 }

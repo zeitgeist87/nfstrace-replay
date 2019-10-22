@@ -25,70 +25,60 @@
 #include "TraceException.h"
 
 class Stats {
-public:
-	unsigned long long linesRead = 0;
-	unsigned long long requestsProcessed = 0;
-	unsigned long long responsesProcessed = 0;
-	unsigned long long removeOperations = 0;
-	unsigned long long linkOperations = 0;
-	unsigned long long lookupOperations = 0;
-	unsigned long long renameOperations = 0;
-	unsigned long long writeOperations = 0;
-	unsigned long long createOperations = 0;
+ public:
+  unsigned long long linesRead = 0;
+  unsigned long long requestsProcessed = 0;
+  unsigned long long responsesProcessed = 0;
+  unsigned long long removeOperations = 0;
+  unsigned long long linkOperations = 0;
+  unsigned long long lookupOperations = 0;
+  unsigned long long renameOperations = 0;
+  unsigned long long writeOperations = 0;
+  unsigned long long createOperations = 0;
 
-	void writeReport(const std::string &path) {
-		if (path.empty())
-			return;
+  void writeReport(const std::string &path) {
+    if (path.empty()) return;
 
-		FILE *fd = fopen(path.c_str(), "w");
-		if (!fd)
-			throw TraceException("Stats: Unable to open file");
+    FILE *fd = fopen(path.c_str(), "w");
+    if (!fd) throw TraceException("Stats: Unable to open file");
 
-		fprintf(fd, "LinesRead %llu\n", linesRead);
-		fprintf(fd, "RequestsProcessed %llu\n",
-				requestsProcessed);
-		fprintf(fd, "ResponsesProcessed %llu\n",
-			responsesProcessed);
-		fprintf(fd, "RemoveOperations %llu\n",
-			removeOperations);
-		fprintf(fd, "LinkOperations %llu\n",
-			linkOperations);
-		fprintf(fd, "LookupOperations %llu\n",
-			lookupOperations);
-		fprintf(fd, "RenameOperations %llu\n",
-			renameOperations);
-		fprintf(fd, "WriteOperations %llu\n",
-			writeOperations);
-		fprintf(fd, "CreateOperations %llu\n",
-			createOperations);
-		fclose(fd);
-	}
+    fprintf(fd, "LinesRead %llu\n", linesRead);
+    fprintf(fd, "RequestsProcessed %llu\n", requestsProcessed);
+    fprintf(fd, "ResponsesProcessed %llu\n", responsesProcessed);
+    fprintf(fd, "RemoveOperations %llu\n", removeOperations);
+    fprintf(fd, "LinkOperations %llu\n", linkOperations);
+    fprintf(fd, "LookupOperations %llu\n", lookupOperations);
+    fprintf(fd, "RenameOperations %llu\n", renameOperations);
+    fprintf(fd, "WriteOperations %llu\n", writeOperations);
+    fprintf(fd, "CreateOperations %llu\n", createOperations);
+    fclose(fd);
+  }
 
-	void process(Frame *frame) {
-		switch (frame->operation) {
-		case REMOVE:
-		case RMDIR:
-			++removeOperations;
-			break;
-		case LINK:
-			++linkOperations;
-			break;
-		case LOOKUP:
-			++lookupOperations;
-			break;
-		case RENAME:
-			++renameOperations;
-			break;
-		case WRITE:
-			++writeOperations;
-			break;
-		case CREATE:
-			++createOperations;
-			break;
-		default:
-			break;
-		}
-	}
+  void process(Frame *frame) {
+    switch (frame->operation) {
+      case REMOVE:
+      case RMDIR:
+        ++removeOperations;
+        break;
+      case LINK:
+        ++linkOperations;
+        break;
+      case LOOKUP:
+        ++lookupOperations;
+        break;
+      case RENAME:
+        ++renameOperations;
+        break;
+      case WRITE:
+        ++writeOperations;
+        break;
+      case CREATE:
+        ++createOperations;
+        break;
+      default:
+        break;
+    }
+  }
 };
 
 #endif /* STATS_H_ */
