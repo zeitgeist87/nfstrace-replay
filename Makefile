@@ -1,6 +1,6 @@
 CC      = g++
-CFLAGS  = -flto -Wall -Wextra -Wpedantic -O2 -rdynamic -std=c++14 -D_FILE_OFFSET_BITS=64
-LDFLAGS = -flto -lncurses -D_FILE_OFFSET_BITS=64
+CFLAGS  = -flto -march=native -fno-fat-lto-objects -Wall -Wextra -Wpedantic -O3 -rdynamic -std=c++14 -D_FILE_OFFSET_BITS=64
+LDFLAGS = -flto -march=native -fwhole-program -fno-fat-lto-objects -lncurses -D_FILE_OFFSET_BITS=64
 
 SRC = ConsoleDisplay.cpp nfsreplay.cpp TransactionMgr.cpp FileSystemTree.cpp Parser.cpp TreeNode.cpp
 OBJ = $(SRC:%.cpp=%.o)

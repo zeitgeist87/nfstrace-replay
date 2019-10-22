@@ -47,7 +47,7 @@ class TransactionMgr {
 
  public:
   TransactionMgr(Settings &sett, Stats &stats, Logger &logger)
-      : sett(sett), stats(stats), fhmap(sett, stats, logger), logger(logger) {}
+      : sett(sett), stats(stats), fhmap(sett, logger), logger(logger) {}
 
   uint64_t size() { return fhmap.size(); }
 

@@ -46,7 +46,6 @@
 class FileSystemTree {
  private:
   Settings &sett;
-  Stats &stats;
   Logger &logger;
 
   // Map file handles to tree nodes
@@ -67,9 +66,8 @@ class FileSystemTree {
   void createChangeFType(TreeNode *element, FType ftype);
 
  public:
-  FileSystemTree(Settings &sett, Stats &stats, Logger &logger)
+  FileSystemTree(Settings &sett, Logger &logger)
       : sett(sett),
-        stats(stats),
         logger(logger),
         fhmap(GC_NODE_HARD_THRESHOLD) {
     if (!sett.writeZero) {
