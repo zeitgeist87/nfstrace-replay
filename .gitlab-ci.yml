@@ -25,7 +25,10 @@ build:docker:
 build:
   stage: build
   script:
+    - mkdir build
+    - cd build
+    - cmake -DCMAKE_BUILD_TYPE=Release ..
     - make
   artifacts:
     paths:
-      - nfsreplay
+      - build/nfsreplay
