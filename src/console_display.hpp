@@ -23,9 +23,9 @@
 
 #include <cerrno>
 
-#include "Frame.h"
-#include "Settings.h"
-#include "Stats.h"
+#include "parser/frame.hpp"
+#include "settings.hpp"
+#include "stats.hpp"
 
 class Logger;
 class TransactionMgr;

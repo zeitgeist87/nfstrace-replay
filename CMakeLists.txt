@@ -8,19 +8,11 @@ find_package(Curses)
 
 add_executable(nfsreplay "")
 
-target_sources(nfsreplay
-    PRIVATE
-        ConsoleDisplay.cpp
-        FileSystemTree.cpp
-        Parser.cpp
-        TransactionMgr.cpp
-        TreeNode.cpp
-        nfsreplay.cpp
-)
+add_subdirectory(src)
 
 target_link_libraries(nfsreplay PRIVATE ${CURSES_LIBRARIES})
 target_compile_definitions(nfsreplay PRIVATE _FILE_OFFSET_BITS=64)
-target_include_directories(nfsreplay PRIVATE ${CURSES_INCLUDE_DIRS})
+target_include_directories(nfsreplay PRIVATE src ${CURSES_INCLUDE_DIRS})
 
 if(CMAKE_BUILD_TYPE_LOWER STREQUAL "release")
     check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT OUTPUT_MSG)

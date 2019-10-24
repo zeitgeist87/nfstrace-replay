@@ -25,9 +25,9 @@
 #include <map>
 #include <string>
 
-#include "FileHandle.h"
-#include "Logger.h"
-#include "TraceException.h"
+#include "parser/file_handle.hpp"
+#include "logger.hpp"
+#include "file_system/trace_exception.hpp"
 
 class TreeNode {
  private:

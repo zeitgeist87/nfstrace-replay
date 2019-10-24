@@ -22,7 +22,7 @@
 #include <cerrno>
 #include <cstdio>
 
-#include "ConsoleDisplay.h"
+#include "console_display.hpp"
 
 class Logger {
   ConsoleDisplay *disp = nullptr;

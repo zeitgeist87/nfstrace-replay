@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "TreeNode.h"
+#include "file_system/tree_node.hpp"
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -27,8 +27,8 @@
 #include <map>
 #include <string>
 
-#include "Logger.h"
-#include "TraceException.h"
+#include "logger.hpp"
+#include "file_system/trace_exception.hpp"
 
 Logger *TreeNode::logger;
 

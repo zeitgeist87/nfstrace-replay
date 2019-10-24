@@ -21,8 +21,8 @@
 
 #include <string>
 
-#include "Frame.h"
-#include "TraceException.h"
+#include "parser/frame.hpp"
+#include "file_system/trace_exception.hpp"
 
 class Stats {
  public:

@@ -22,11 +22,11 @@
 #include <memory>
 #include <unordered_map>
 
-#include "FileSystemTree.h"
-#include "Frame.h"
-#include "Logger.h"
-#include "Settings.h"
-#include "Stats.h"
+#include "file_system/file_system_tree.hpp"
+#include "parser/frame.hpp"
+#include "logger.hpp"
+#include "settings.hpp"
+#include "stats.hpp"
 
 #define GC_MAX_TRANSACTIONTIME (5 * 60)
 

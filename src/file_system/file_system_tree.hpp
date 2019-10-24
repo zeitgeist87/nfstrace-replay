@@ -23,14 +23,14 @@
 
 #include <string>
 
-#include "FileHandle.h"
-#include "FileHandleMap.h"
-#include "Frame.h"
-#include "Logger.h"
-#include "Settings.h"
-#include "Stats.h"
-#include "TraceException.h"
-#include "TreeNode.h"
+#include "parser/file_handle.hpp"
+#include "file_system/file_handle_map.hpp"
+#include "parser/frame.hpp"
+#include "logger.hpp"
+#include "settings.hpp"
+#include "stats.hpp"
+#include "file_system/trace_exception.hpp"
+#include "file_system/tree_node.hpp"
 
 /*
  * size of the random buffer which is used

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "FileSystemTree.h"
+#include "file_system/file_system_tree.hpp"
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -30,9 +30,9 @@
 #include <set>
 #include <string>
 
-#include "FileHandle.h"
-#include "Frame.h"
-#include "TreeNode.h"
+#include "parser/file_handle.hpp"
+#include "parser/frame.hpp"
+#include "file_system/tree_node.hpp"
 
 using namespace std;
 

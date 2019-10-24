@@ -27,13 +27,13 @@
 #include <cstring>
 #include <string>
 
-#include "ConsoleDisplay.h"
-#include "FileSystemTree.h"
-#include "Logger.h"
-#include "Parser.h"
-#include "Settings.h"
-#include "Stats.h"
-#include "TransactionMgr.h"
+#include "console_display.hpp"
+#include "file_system/file_system_tree.hpp"
+#include "logger.hpp"
+#include "parser/parser.hpp"
+#include "settings.hpp"
+#include "stats.hpp"
+#include "parser/transaction_mgr.hpp"
 
 using namespace std;
 

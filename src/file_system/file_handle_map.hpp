@@ -11,9 +11,9 @@
 #include <memory>
 #include <unordered_map>
 
-#include "FileHandle.h"
-#include "TraceException.h"
-#include "TreeNode.h"
+#include "parser/file_handle.hpp"
+#include "file_system/trace_exception.hpp"
+#include "file_system/tree_node.hpp"
 
 class FileHandleMap {
  private:

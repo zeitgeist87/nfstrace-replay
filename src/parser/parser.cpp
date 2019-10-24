@@ -16,14 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Parser.h"
+#include "parser/parser.hpp"
 
 #include <cstring>
 #include <map>
 #include <memory>
 #include <string>
 
-#include "TraceException.h"
+#include "file_system/trace_exception.hpp"
 
 std::unique_ptr<Frame> Parser::parse(char *line) {
   char *pos = line;

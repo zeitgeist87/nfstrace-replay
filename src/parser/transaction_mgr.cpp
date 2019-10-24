@@ -16,13 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "TransactionMgr.h"
+#include "parser/transaction_mgr.hpp"
 
 #include <unordered_map>
 #include <vector>
 
-#include "FileSystemTree.h"
-#include "Frame.h"
+#include "file_system/file_system_tree.hpp"
+#include "parser/frame.hpp"
 
 using namespace std;
 

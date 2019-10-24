@@ -16,16 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ConsoleDisplay.h"
+#include "console_display.hpp"
 
 #include <curses.h>
 
 #include <ctime>
 
-#include "FileSystemTree.h"
-#include "Frame.h"
-#include "Logger.h"
-#include "TransactionMgr.h"
+#include "file_system/file_system_tree.hpp"
+#include "parser/frame.hpp"
+#include "logger.hpp"
+#include "parser/transaction_mgr.hpp"
 
 ConsoleDisplay::ConsoleDisplay(Settings &sett, Stats &stats,
                                TransactionMgr &transMgr, Logger &logger)
