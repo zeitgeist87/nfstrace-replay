@@ -24,13 +24,13 @@
 #include <string>
 
 #include "parser/file_handle.hpp"
-#include "file_system/file_handle_map.hpp"
+#include "tree/file_handle_map.hpp"
 #include "parser/frame.hpp"
-#include "logger.hpp"
+#include "display/logger.hpp"
 #include "settings.hpp"
 #include "stats.hpp"
-#include "file_system/trace_exception.hpp"
-#include "file_system/tree_node.hpp"
+#include "replay/trace_exception.hpp"
+#include "tree/tree_node.hpp"
 
 /*
  * size of the random buffer which is used
@@ -43,7 +43,7 @@
 #define GC_DISCARD_HARD_THRESHOLD (60 * 5)
 #define GC_DISCARD_THRESHOLD (60 * 60 * 24)
 
-class FileSystemTree {
+class ReplayEngine {
  private:
   Settings &sett;
   Logger &logger;
@@ -66,7 +66,7 @@ class FileSystemTree {
   void createChangeFType(TreeNode *element, FType ftype);
 
  public:
-  FileSystemTree(Settings &sett, Logger &logger)
+  ReplayEngine(Settings &sett, Logger &logger)
       : sett(sett),
         logger(logger),
         fhmap(GC_NODE_HARD_THRESHOLD) {

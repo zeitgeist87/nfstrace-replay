@@ -1,8 +1,19 @@
 /*
- * FileSystemMap.h
+ * nfstrace-replay - Small command line tool to replay file system traces
+ * Copyright (C) 2014  Andreas Rohner
  *
- *  Created on: Jun 7, 2017
- *      Author: andreas
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef FILEHANDLEMAP_H_
@@ -12,8 +23,8 @@
 #include <unordered_map>
 
 #include "parser/file_handle.hpp"
-#include "file_system/trace_exception.hpp"
-#include "file_system/tree_node.hpp"
+#include "replay/trace_exception.hpp"
+#include "tree/tree_node.hpp"
 
 class FileHandleMap {
  private:

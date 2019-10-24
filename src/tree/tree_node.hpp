@@ -26,8 +26,8 @@
 #include <string>
 
 #include "parser/file_handle.hpp"
-#include "logger.hpp"
-#include "file_system/trace_exception.hpp"
+#include "display/logger.hpp"
+#include "replay/trace_exception.hpp"
 
 class TreeNode {
  private:

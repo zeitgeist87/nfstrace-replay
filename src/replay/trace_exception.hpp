@@ -23,6 +23,7 @@
 
 #include <exception>
 #include <utility>
+#include <string>
 
 class TraceException : public std::exception {
   std::string message;

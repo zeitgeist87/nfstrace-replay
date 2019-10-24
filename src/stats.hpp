@@ -22,7 +22,7 @@
 #include <string>
 
 #include "parser/frame.hpp"
-#include "file_system/trace_exception.hpp"
+#include "replay/trace_exception.hpp"
 
 class Stats {
  public:

@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "parser/transaction_mgr.hpp"
+#include "replay/transaction_mgr.hpp"
 
 #include <unordered_map>
 #include <vector>
 
-#include "file_system/file_system_tree.hpp"
+#include "replay/replay_engine.hpp"
 #include "parser/frame.hpp"
 
 using namespace std;
@@ -90,7 +90,7 @@ void TransactionMgr::processResponse(std::unique_ptr<const Frame> &&res) {
     return;
   }
 
-  fhmap.process(std::move(transIt->second), std::move(res));
+  engine.process(std::move(transIt->second), std::move(res));
   transactions.erase(transIt);
 }
 
@@ -112,17 +112,17 @@ int TransactionMgr::process(std::unique_ptr<const Frame> &&frame) {
 
   // Sync every 10 minutes
   if (!sett.noSync && last_sync + sett.syncMinutes * 60 < time) {
-    if (!fhmap.sync()) logger.error("Error syncing file system");
+    if (!engine.sync()) logger.error("Error syncing file system");
 
     last_sync = time;
   }
 
   if (sett.enableGC &&
-      ((last_gc + 60 * 60 * 12 < time && fhmap.size() > GC_NODE_THRESHOLD) ||
-       fhmap.size() > GC_NODE_HARD_THRESHOLD)) {
+      ((last_gc + 60 * 60 * 12 < time && engine.size() > GC_NODE_THRESHOLD) ||
+       engine.size() > GC_NODE_HARD_THRESHOLD)) {
     logger.log("RUNNING GC");
 
-    fhmap.gc(time);
+    engine.gc(time);
     gc(time);
 
     last_gc = time;

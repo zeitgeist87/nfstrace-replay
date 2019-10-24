@@ -1,5 +1,6 @@
 
+
 target_sources(nfsreplay
     PRIVATE
-        parser.cpp
+        console_display.cpp
 )

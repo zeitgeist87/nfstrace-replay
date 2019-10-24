@@ -23,7 +23,7 @@
 #include <memory>
 #include <string>
 
-#include "file_system/trace_exception.hpp"
+#include "replay/trace_exception.hpp"
 
 std::unique_ptr<Frame> Parser::parse(char *line) {
   char *pos = line;

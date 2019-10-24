@@ -22,9 +22,9 @@
 #include <memory>
 #include <unordered_map>
 
-#include "file_system/file_system_tree.hpp"
+#include "replay/replay_engine.hpp"
 #include "parser/frame.hpp"
-#include "logger.hpp"
+#include "display/logger.hpp"
 #include "settings.hpp"
 #include "stats.hpp"
 
@@ -34,7 +34,7 @@ class TransactionMgr {
  private:
   Settings &sett;
   Stats &stats;
-  FileSystemTree fhmap;
+  ReplayEngine engine;
   Logger &logger;
   // map transaction ids to frames
   std::unordered_map<uint32_t, std::unique_ptr<const Frame>> transactions;
@@ -47,9 +47,9 @@ class TransactionMgr {
 
  public:
   TransactionMgr(Settings &sett, Stats &stats, Logger &logger)
-      : sett(sett), stats(stats), fhmap(sett, logger), logger(logger) {}
+      : sett(sett), stats(stats), engine(sett, logger), logger(logger) {}
 
-  uint64_t size() { return fhmap.size(); }
+  uint64_t size() { return engine.size(); }
 
   int process(std::unique_ptr<const Frame> &&frame);
   void gc(int64_t time);
