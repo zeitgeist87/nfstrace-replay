@@ -19,13 +19,15 @@
 #ifndef STATS_H_
 #define STATS_H_
 
+#include <stdexcept>
 #include <string>
 
 #include "parser/frame.hpp"
-#include "replay/trace_exception.hpp"
 
 class Stats {
  public:
+  using Frame = parser::Frame;
+
   unsigned long long linesRead = 0;
   unsigned long long requestsProcessed = 0;
   unsigned long long responsesProcessed = 0;
@@ -40,7 +42,7 @@ class Stats {
     if (path.empty()) return;
 
     FILE *fd = fopen(path.c_str(), "w");
-    if (!fd) throw TraceException("Stats: Unable to open file");
+    if (!fd) throw StatsException("Stats: Unable to open file");
 
     fprintf(fd, "LinesRead %llu\n", linesRead);
     fprintf(fd, "RequestsProcessed %llu\n", requestsProcessed);
@@ -55,6 +57,8 @@ class Stats {
   }
 
   void process(Frame *frame) {
+    using namespace parser;
+
     switch (frame->operation) {
       case REMOVE:
       case RMDIR:
@@ -79,6 +83,10 @@ class Stats {
         break;
     }
   }
+
+  class StatsException : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+  };
 };
 
 #endif /* STATS_H_ */

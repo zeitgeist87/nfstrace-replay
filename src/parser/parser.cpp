@@ -23,7 +23,7 @@
 #include <memory>
 #include <string>
 
-#include "replay/trace_exception.hpp"
+namespace parser {
 
 std::unique_ptr<Frame> Parser::parse(char *line) {
   char *pos = line;
@@ -117,3 +117,5 @@ std::unique_ptr<Frame> Parser::parse(char *line) {
 
   return frame;
 }
+
+}  // namespace parser

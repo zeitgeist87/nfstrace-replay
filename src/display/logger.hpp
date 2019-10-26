@@ -24,6 +24,8 @@
 
 #include "console_display.hpp"
 
+namespace display {
+
 class Logger {
   ConsoleDisplay *disp = nullptr;
 
@@ -31,7 +33,7 @@ class Logger {
   void setDisplay(ConsoleDisplay *disp) { this->disp = disp; }
   void error(const char *msg) {
     if (disp)
-      disp->log("%s: %s\n", msg, strerror(errno));
+      disp->log("%s: %s\n", msg, std::strerror(errno));
     else
       perror(msg);
   }
@@ -42,5 +44,9 @@ class Logger {
       puts(msg);
   }
 };
+
+}  // namespace display
+
+using Logger = display::Logger;
 
 #endif /* LOGGER_H_ */

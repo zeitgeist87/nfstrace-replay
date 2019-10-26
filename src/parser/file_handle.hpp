@@ -24,6 +24,8 @@
 #include <functional>
 #include <string>
 
+namespace parser {
+
 class FileHandleInt {
  private:
   uint64_t handle = 0;
@@ -82,16 +84,18 @@ class FileHandleInt {
   friend struct std::hash<FileHandleInt>;
 };
 
+// typedef std::string FileHandle;
+using FileHandle = FileHandleInt;
+
+}  // namespace parser
+
 namespace std {
 template <>
-struct hash<FileHandleInt> {
-  std::size_t operator()(FileHandleInt const &h) const {
+struct hash<parser::FileHandleInt> {
+  std::size_t operator()(parser::FileHandleInt const &h) const {
     return std::hash<uint64_t>()(h.handle);
   }
 };
 }  // namespace std
-
-// typedef std::string FileHandle;
-using FileHandle = FileHandleInt;
 
 #endif /* FILEHANDLE_H_ */

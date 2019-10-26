@@ -30,9 +30,9 @@
 #include "display/console_display.hpp"
 #include "display/logger.hpp"
 #include "parser/parser.hpp"
+#include "replay/transaction_mgr.hpp"
 #include "settings.hpp"
 #include "stats.hpp"
-#include "replay/transaction_mgr.hpp"
 
 using namespace std;
 
@@ -238,9 +238,9 @@ int main(int argc, char **argv) {
   }
 
   Logger logger;
-  TransactionMgr transMgr(sett, stats, logger);
-  ConsoleDisplay disp(sett, stats, transMgr, logger);
-  Parser parser;
+  replay::TransactionMgr transMgr(sett, stats, logger);
+  display::ConsoleDisplay disp(sett, stats, transMgr, logger);
+  parser::Parser parser;
 
   try {
     while (fgets(line, sizeof(line), input) != nullptr) {

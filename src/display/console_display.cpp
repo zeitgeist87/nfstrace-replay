@@ -22,12 +22,14 @@
 
 #include <ctime>
 
-#include "parser/frame.hpp"
 #include "display/logger.hpp"
+#include "parser/frame.hpp"
 #include "replay/transaction_mgr.hpp"
 
+namespace display {
+
 ConsoleDisplay::ConsoleDisplay(Settings &sett, Stats &stats,
-                               TransactionMgr &transMgr, Logger &logger)
+                               replay::TransactionMgr &transMgr, Logger &logger)
     : sett(sett), stats(stats), transMgr(transMgr) {
   initscr();
   refresh();
@@ -101,3 +103,5 @@ void ConsoleDisplay::process(Frame *frame) {
     last_print = time;
   }
 }
+
+}  // namespace display

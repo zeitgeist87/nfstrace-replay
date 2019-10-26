@@ -25,6 +25,8 @@
 
 #include "parser/frame.hpp"
 
+namespace parser {
+
 class Parser {
  private:
   struct CompareCStrings {
@@ -83,5 +85,7 @@ class Parser {
 
   std::unique_ptr<Frame> parse(char *line);
 };
+
+}  // namespace parser
 
 #endif /* PARSER_H_ */

@@ -21,10 +21,13 @@
 #include <unordered_map>
 #include <vector>
 
-#include "replay/replay_engine.hpp"
 #include "parser/frame.hpp"
+#include "replay/engine.hpp"
 
 using namespace std;
+using namespace parser;
+
+namespace replay {
 
 void TransactionMgr::processRequest(std::unique_ptr<const Frame> &&req) {
   switch (req->operation) {
@@ -152,3 +155,5 @@ int TransactionMgr::process(std::unique_ptr<const Frame> &&frame) {
 
   return 0;
 }
+
+}  // namespace replay

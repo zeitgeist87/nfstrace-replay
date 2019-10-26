@@ -23,6 +23,8 @@
 
 #include "parser/file_handle.hpp"
 
+namespace parser {
+
 enum Protocol { NOPROT, R2, C2, R3, C3 };
 
 enum FType {
@@ -147,5 +149,7 @@ class Frame {
     }
   }
 };
+
+}  // namespace parser
 
 #endif /* FRAME_H_ */

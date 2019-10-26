@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "replay/replay_engine.hpp"
+#include "replay/engine.hpp"
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -32,12 +32,15 @@
 
 #include "parser/file_handle.hpp"
 #include "parser/frame.hpp"
-#include "tree/tree_node.hpp"
+#include "tree/node.hpp"
 
 using namespace std;
+using namespace parser;
 
-void ReplayEngine::createMoveElement(TreeNode *element, TreeNode *parent,
-                                       const string &name) {
+namespace replay {
+
+void Engine::createMoveElement(tree::Node *element, tree::Node *parent,
+                               const string &name) {
   if (element->isCreated()) {
     string oldpath = element->calcPath();
     string newpath = parent->makePath() + '/' + name;
@@ -51,14 +54,14 @@ void ReplayEngine::createMoveElement(TreeNode *element, TreeNode *parent,
   }
 
   // Move element to new parent
-  TreeNode *oldparent = element->getParent();
+  tree::Node *oldparent = element->getParent();
   if (oldparent) oldparent->removeChild(element);
   element->setName(name);
   parent->addChild(element);
   if (oldparent) oldparent->clearEmptyDir();
 }
 
-void ReplayEngine::createChangeFType(TreeNode *element, FType ftype) {
+void Engine::createChangeFType(tree::Node *element, FType ftype) {
   if (ftype == DIR && !element->isDir()) {
     if (element->isCreated()) {
       if (remove(element->calcPath().c_str())) {
@@ -82,7 +85,7 @@ void ReplayEngine::createChangeFType(TreeNode *element, FType ftype) {
   }
 }
 
-void ReplayEngine::createLookup(const Frame &req, const Frame &res) {
+void Engine::createLookup(const Frame &req, const Frame &res) {
   if (req.fh.empty() || res.fh.empty() || req.fh == res.fh ||
       req.name.empty() || (res.ftype != REG && res.ftype != DIR) ||
       req.name == "." || req.name == "..")
@@ -161,19 +164,19 @@ void ReplayEngine::createLookup(const Frame &req, const Frame &res) {
   }
 }
 
-void ReplayEngine::createFile(const Frame &req, const Frame &res) {
+void Engine::createFile(const Frame &req, const Frame &res) {
   if (req.fh.empty() || res.fh.empty() || req.fh == res.fh ||
       req.name.empty() || (res.ftype != REG && res.ftype != DIR) ||
       req.name == "." || req.name == "..")
     return;
 
-  TreeNode *parent = fhmap.getOrCreateDir(req.fh, res.time);
+  tree::Node *parent = fhmap.getOrCreateDir(req.fh, res.time);
   parent->setLastAccess(res.time);
 
   // Don't make empty paths
   // parent->makePath();
 
-  TreeNode *element = parent->getChild(req.name);
+  tree::Node *element = parent->getChild(req.name);
   if (element) {
     if (element->getHandle() != res.fh) {
       auto tmp = fhmap.getNode(res.fh);
@@ -222,7 +225,7 @@ void ReplayEngine::createFile(const Frame &req, const Frame &res) {
             element->setCreated(false);
         }
 
-        TreeNode *oldparent = element->getParent();
+        tree::Node *oldparent = element->getParent();
         if (oldparent) oldparent->removeChild(element);
         element->setName(req.name);
         parent->addChild(element);
@@ -246,13 +249,13 @@ void ReplayEngine::createFile(const Frame &req, const Frame &res) {
   }
 }
 
-void ReplayEngine::removeFile(const Frame &req, const Frame &res) {
+void Engine::removeFile(const Frame &req, const Frame &res) {
   if (req.fh.empty() || req.name.empty()) return;
 
   auto dir = fhmap.getNode(req.fh);
   if (!dir) return;
 
-  TreeNode *element = dir->getChild(req.name);
+  tree::Node *element = dir->getChild(req.name);
   if (element && element->isDeletable()) {
     if (element->isCreated()) {
       string path = element->calcPath();
@@ -267,7 +270,7 @@ void ReplayEngine::removeFile(const Frame &req, const Frame &res) {
   }
 }
 
-void ReplayEngine::writeFile(const Frame &req, const Frame &res) {
+void Engine::writeFile(const Frame &req, const Frame &res) {
   if (req.fh.empty() || res.ftype != REG) return;
 
   auto element = fhmap.getOrCreateNode(req.fh, res.time);
@@ -329,7 +332,7 @@ void ReplayEngine::writeFile(const Frame &req, const Frame &res) {
   }
 }
 
-void ReplayEngine::renameFile(const Frame &req, const Frame &res) {
+void Engine::renameFile(const Frame &req, const Frame &res) {
   if (req.fh.empty() || req.fh2.empty() || req.name.empty() ||
       req.name2.empty() || (req.fh == req.fh2 && req.name == req.name2))
     return;
@@ -337,7 +340,7 @@ void ReplayEngine::renameFile(const Frame &req, const Frame &res) {
   auto dir1 = fhmap.getNode(req.fh);
   if (!dir1) return;
 
-  TreeNode *el = dir1->getChild(req.name);
+  tree::Node *el = dir1->getChild(req.name);
   if (!el) return;
 
   auto dir2 = fhmap.getOrCreateDir(req.fh2, res.time);
@@ -346,7 +349,7 @@ void ReplayEngine::renameFile(const Frame &req, const Frame &res) {
   dir2->setLastAccess(res.time);
   el->setLastAccess(res.time);
 
-  TreeNode *el2 = dir2->getChild(req.name2);
+  tree::Node *el2 = dir2->getChild(req.name2);
   if ((!el2 || el2->isDeletable()) && el != el2) {
     if (el->isCreated()) {
       string oldpath = el->calcPath();
@@ -377,7 +380,7 @@ void ReplayEngine::renameFile(const Frame &req, const Frame &res) {
   }
 }
 
-void ReplayEngine::createLink(const Frame &req, const Frame &res) {
+void Engine::createLink(const Frame &req, const Frame &res) {
   if (req.fh.empty() || req.fh2.empty() || req.name.empty()) return;
 
   auto srcfile = fhmap.getNode(req.fh);
@@ -388,7 +391,7 @@ void ReplayEngine::createLink(const Frame &req, const Frame &res) {
   auto targetdir = fhmap.getOrCreateDir(req.fh2, res.time);
   targetdir->setLastAccess(res.time);
 
-  TreeNode *element = targetdir->getChild(req.name);
+  tree::Node *element = targetdir->getChild(req.name);
   if ((!element || element->isDeletable()) && element != srcfile) {
     if (element) {
       if (element->isCreated()) {
@@ -421,7 +424,7 @@ void ReplayEngine::createLink(const Frame &req, const Frame &res) {
   }
 }
 
-void ReplayEngine::createSymlink(const Frame &req, const Frame &res) {
+void Engine::createSymlink(const Frame &req, const Frame &res) {
   if (req.fh.empty() || res.fh.empty() || req.name.empty() || req.name2.empty())
     return;
 
@@ -456,7 +459,7 @@ void ReplayEngine::createSymlink(const Frame &req, const Frame &res) {
   }
 }
 
-void ReplayEngine::getAttr(const Frame &req, const Frame &res) {
+void Engine::getAttr(const Frame &req, const Frame &res) {
   if (req.fh.empty()) return;
 
   auto element = fhmap.getNode(req.fh);
@@ -472,7 +475,7 @@ void ReplayEngine::getAttr(const Frame &req, const Frame &res) {
   }
 }
 
-void ReplayEngine::setAttr(const Frame &req, const Frame &res) {
+void Engine::setAttr(const Frame &req, const Frame &res) {
   if (req.fh.empty()) return;
 
   auto element = fhmap.getNode(req.fh);
@@ -502,7 +505,7 @@ void ReplayEngine::setAttr(const Frame &req, const Frame &res) {
   }
 }
 
-static bool recursive_tree_gc(TreeNode *element, set<TreeNode *> &del_list,
+static bool recursive_tree_gc(tree::Node *element, set<tree::Node *> &del_list,
                               time_t ko_time) {
   if (!element || element->isCreated() || element->getLastAccess() >= ko_time)
     return false;
@@ -521,15 +524,15 @@ static bool recursive_tree_gc(TreeNode *element, set<TreeNode *> &del_list,
   return true;
 }
 
-void ReplayEngine::gc(int64_t time) {
-  set<TreeNode *> del_list;
+void Engine::gc(int64_t time) {
+  set<tree::Node *> del_list;
   time_t ko_time = fhmap.size() > GC_NODE_HARD_THRESHOLD
                        ? time - GC_DISCARD_HARD_THRESHOLD
                        : time - GC_DISCARD_THRESHOLD;
 
   // Clear up old unused file handlers
   for (auto &it : fhmap) {
-    TreeNode *element = it.second.get();
+    tree::Node *element = it.second.get();
     if (recursive_tree_gc(element, del_list, ko_time) && element->getParent()) {
       element->getParent()->removeChild(element);
     }
@@ -539,3 +542,5 @@ void ReplayEngine::gc(int64_t time) {
     fhmap.removeNode(element);
   }
 }
+
+}  // namespace replay

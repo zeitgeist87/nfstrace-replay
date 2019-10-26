@@ -16,35 +16,38 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef TREENODE_H_
-#define TREENODE_H_
+#ifndef TREE_NODE_H_
+#define TREE_NODE_H_
 
 #include <cstdint>
 #include <cstdio>
 #include <ctime>
 #include <map>
+#include <stdexcept>
 #include <string>
 
-#include "parser/file_handle.hpp"
 #include "display/logger.hpp"
-#include "replay/trace_exception.hpp"
+#include "parser/file_handle.hpp"
 
-class TreeNode {
+namespace tree {
+
+class Node {
  private:
+  using FileHandle = parser::FileHandle;
   static Logger *logger;
-  TreeNode *parent;
+  Node *parent;
   std::string name;
   FileHandle fh;
   uint64_t size;
   bool created;
   bool dir;
-  std::map<std::string, TreeNode *> children;
+  std::map<std::string, Node *> children;
   int64_t last_access;
 
  public:
   static void setLogger(Logger *l) { logger = l; }
 
-  TreeNode(const FileHandle &fh, int64_t timestamp)
+  Node(const FileHandle &fh, int64_t timestamp)
       : parent(nullptr),
         name(fh),
         fh(fh),
@@ -52,10 +55,10 @@ class TreeNode {
         created(false),
         dir(false),
         last_access(timestamp) {
-    if (name.empty()) throw TraceException("TreeNode: Empty name not allowed");
+    if (name.empty()) throw NodeException("tree::Node: Empty name not allowed");
   }
 
-  TreeNode(const FileHandle &fh, const std::string &name, int64_t timestamp)
+  Node(const FileHandle &fh, const std::string &name, int64_t timestamp)
       : parent(nullptr),
         name(name),
         fh(fh),
@@ -64,21 +67,21 @@ class TreeNode {
         dir(false),
         last_access(timestamp) {
     if (fh.empty() || name.empty())
-      throw TraceException("TreeNode: Empty name not allowed");
+      throw NodeException("tree::Node: Empty name not allowed");
   }
 
   void setLastAccess(int64_t timestamp) { last_access = timestamp; }
   [[nodiscard]] int64_t getLastAccess() const { return last_access; }
 
-  std::map<std::string, TreeNode *>::iterator children_begin() {
+  std::map<std::string, Node *>::iterator children_begin() {
     return children.begin();
   }
 
-  std::map<std::string, TreeNode *>::iterator children_end() {
+  std::map<std::string, Node *>::iterator children_end() {
     return children.end();
   }
 
-  TreeNode *getParent() { return parent; }
+  Node *getParent() { return parent; }
   std::string &getName() { return name; }
   FileHandle &getHandle() { return fh; }
   uint64_t getSize() { return size; }
@@ -96,12 +99,12 @@ class TreeNode {
   [[nodiscard]] bool isDeletable() const { return children.empty(); }
 
   void setHandle(const FileHandle &handle) {
-    if (handle.empty()) throw TraceException("TreeNode: Empty fh not allowed");
+    if (handle.empty()) throw NodeException("tree::Node: Empty fh not allowed");
     fh = handle;
   }
 
-  void setParent(TreeNode *p) {
-    if (!p) throw TraceException("TreeNode: Tried to set empty parent");
+  void setParent(Node *p) {
+    if (!p) throw NodeException("tree::Node: Tried to set empty parent");
 
     if (parent) parent->removeChild(this);
 
@@ -116,16 +119,22 @@ class TreeNode {
   void setDir(bool dir) { this->dir = dir; }
 
   void setName(const std::string &name);
-  void addChild(TreeNode *child);
-  void removeChild(TreeNode *child);
-  void deleteChild(TreeNode *child);
-  [[nodiscard]] TreeNode *getChild(const std::string &name) const;
+  void addChild(Node *child);
+  void removeChild(Node *child);
+  void deleteChild(Node *child);
+  [[nodiscard]] Node *getChild(const std::string &name) const;
 
   [[nodiscard]] bool isChildCreated() const;
   void writeToSize(uint64_t size);
   void clearEmptyDir();
   std::string calcPath();
   std::string makePath(int mode = 0755);
+
+  class NodeException : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+  };
 };
 
-#endif /* TREENODE_H_ */
+}  // namespace tree
+
+#endif  // TREE_NODE_H_

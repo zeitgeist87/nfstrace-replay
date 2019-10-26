@@ -23,14 +23,13 @@
 
 #include <string>
 
-#include "parser/file_handle.hpp"
-#include "tree/file_handle_map.hpp"
-#include "parser/frame.hpp"
 #include "display/logger.hpp"
+#include "parser/file_handle.hpp"
+#include "parser/frame.hpp"
 #include "settings.hpp"
 #include "stats.hpp"
-#include "replay/trace_exception.hpp"
-#include "tree/tree_node.hpp"
+#include "tree/file_handle_map.hpp"
+#include "tree/node.hpp"
 
 /*
  * size of the random buffer which is used
@@ -43,14 +42,18 @@
 #define GC_DISCARD_HARD_THRESHOLD (60 * 5)
 #define GC_DISCARD_THRESHOLD (60 * 60 * 24)
 
-class ReplayEngine {
+namespace replay {
+
+class Engine {
  private:
   Settings &sett;
   Logger &logger;
 
   // Map file handles to tree nodes
-  FileHandleMap fhmap;
+  tree::FileHandleMap fhmap;
   char randbuf[RANDBUF_SIZE];
+
+  using Frame = parser::Frame;
 
   void createLookup(const Frame &req, const Frame &res);
   void createFile(const Frame &req, const Frame &res);
@@ -61,15 +64,13 @@ class ReplayEngine {
   void createSymlink(const Frame &req, const Frame &res);
   void getAttr(const Frame &req, const Frame &res);
   void setAttr(const Frame &req, const Frame &res);
-  void createMoveElement(TreeNode *element, TreeNode *parent,
+  void createMoveElement(tree::Node *element, tree::Node *parent,
                          const std::string &name);
-  void createChangeFType(TreeNode *element, FType ftype);
+  void createChangeFType(tree::Node *element, parser::FType ftype);
 
  public:
-  ReplayEngine(Settings &sett, Logger &logger)
-      : sett(sett),
-        logger(logger),
-        fhmap(GC_NODE_HARD_THRESHOLD) {
+  Engine(Settings &sett, Logger &logger)
+      : sett(sett), logger(logger), fhmap(GC_NODE_HARD_THRESHOLD) {
     if (!sett.writeZero) {
       FILE *fd = fopen("/dev/urandom", "r");
       if (fread(randbuf, 1, RANDBUF_SIZE, fd) != RANDBUF_SIZE) {
@@ -80,7 +81,7 @@ class ReplayEngine {
       memset(randbuf, 0, RANDBUF_SIZE);
     }
 
-    TreeNode::setLogger(&logger);
+    tree::Node::setLogger(&logger);
   }
 
   uint64_t size() const { return fhmap.size(); }
@@ -97,6 +98,8 @@ class ReplayEngine {
                std::unique_ptr<const Frame> &&resp) {
     auto &req = *reqp.get();
     auto &res = *resp.get();
+
+    using namespace parser;
 
     switch (res.operation) {
       case LOOKUP:
@@ -134,5 +137,7 @@ class ReplayEngine {
     }
   }
 };
+
+}  // namespace replay
 
 #endif /* FILESYSTEMTREE_H_ */

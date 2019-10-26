@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "tree/tree_node.hpp"
+#include "tree/node.hpp"
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -28,11 +28,12 @@
 #include <string>
 
 #include "display/logger.hpp"
-#include "replay/trace_exception.hpp"
 
-Logger *TreeNode::logger;
+namespace tree {
 
-void TreeNode::writeToSize(uint64_t size) {
+Logger *Node::logger;
+
+void Node::writeToSize(uint64_t size) {
   auto curr = getSize();
 
   if (created) {
@@ -83,21 +84,21 @@ void TreeNode::writeToSize(uint64_t size) {
   close(fd);
 }
 
-TreeNode *TreeNode::getChild(const std::string &name) const {
+Node *Node::getChild(const std::string &name) const {
   auto it = children.find(name);
   if (it == children.end()) return nullptr;
   return it->second;
 }
 
-bool TreeNode::isChildCreated() const {
+bool Node::isChildCreated() const {
   for (const auto &it : children) {
     if (it.second->isCreated()) return true;
   }
   return false;
 }
 
-void TreeNode::clearEmptyDir() {
-  TreeNode *el = this;
+void Node::clearEmptyDir() {
+  Node *el = this;
   do {
     if (el->isCreated() && (!el->hasChildren() || !el->isChildCreated())) {
       if (remove(el->calcPath().c_str())) {
@@ -113,21 +114,21 @@ void TreeNode::clearEmptyDir() {
   } while (el);
 }
 
-void TreeNode::removeChild(TreeNode *child) {
+void Node::removeChild(Node *child) {
   if (!child || this == child || fh == child->fh)
-    throw TraceException("TreeNode: Wrong parameter");
+    throw NodeException("tree::Node: Wrong parameter");
 
   auto it = children.find(child->name);
   if (it == children.end() || it->second != child)
-    throw TraceException("TreeNode: Cannot find element");
+    throw NodeException("tree::Node: Cannot find element");
 
   children.erase(it);
   child->parent = nullptr;
 }
 
-void TreeNode::addChild(TreeNode *child) {
+void Node::addChild(Node *child) {
   if (!child || this == child || fh == child->fh)
-    throw TraceException("TreeNode: Wrong parameter");
+    throw NodeException("tree::Node: Wrong parameter");
 
   auto it = children.find(child->name);
   if (it != children.end()) {
@@ -135,42 +136,42 @@ void TreeNode::addChild(TreeNode *child) {
       // nothing to do
       return;
     }
-    throw TraceException("TreeNode: Element with same name already present");
+    throw NodeException("tree::Node: Element with same name already present");
   }
 
   if (child->parent) child->parent->removeChild(child);
 
-  children.insert(std::pair<std::string, TreeNode *>(child->name, child));
+  children.insert(std::pair<std::string, Node *>(child->name, child));
   child->parent = this;
 }
 
-void TreeNode::deleteChild(TreeNode *child) {
+void Node::deleteChild(Node *child) {
   if (!child || !child->children.empty())
-    throw TraceException("TreeNode: Wrong parameter or children not empty");
+    throw NodeException("tree::Node: Wrong parameter or children not empty");
 
   removeChild(child);
 }
 
-void TreeNode::setName(const std::string &name) {
-  if (name.empty()) throw TraceException("TreeNode: Empty name not allowed");
+void Node::setName(const std::string &name) {
+  if (name.empty()) throw NodeException("tree::Node: Empty name not allowed");
 
   if (name == this->name) return;
 
   if (parent)
-    throw TraceException(
-        "TreeNode: Cannot rename an element if it is attached to a parent");
+    throw NodeException(
+        "tree::Node: Cannot rename an element if it is attached to a parent");
 
   this->name = name;
 }
 
-std::string TreeNode::calcPath() {
+std::string Node::calcPath() {
   char buffer[4096];
   char *pos = buffer + 4096;
-  TreeNode *node = this;
+  Node *node = this;
 
   do {
     pos = pos - node->getName().size();
-    if (pos <= buffer) throw TraceException("TreeNode: Path too long");
+    if (pos <= buffer) throw NodeException("tree::Node: Path too long");
 
     memcpy(pos, node->getName().c_str(), node->getName().size());
     node = node->getParent();
@@ -183,7 +184,7 @@ std::string TreeNode::calcPath() {
   return std::string(pos, (size_t)(buffer + 4096 - pos));
 }
 
-static size_t makePathHelper(TreeNode *node, char *buffer, const int mode,
+static size_t makePathHelper(Node *node, char *buffer, const int mode,
                              Logger *logger) {
   if (!node) return 0;
 
@@ -195,7 +196,7 @@ static size_t makePathHelper(TreeNode *node, char *buffer, const int mode,
   }
 
   if (pos + node->getName().size() > 4096)
-    throw TraceException("TreeNode: Path too long");
+    throw Node::NodeException("tree::Node: Path too long");
 
   memcpy(buffer + pos, node->getName().c_str(), node->getName().size());
 
@@ -211,7 +212,7 @@ static size_t makePathHelper(TreeNode *node, char *buffer, const int mode,
   return pos;
 }
 
-std::string TreeNode::makePath(const int mode) {
+std::string Node::makePath(const int mode) {
   if (isCreated()) return calcPath();
 
   char buffer[4096];
@@ -219,3 +220,5 @@ std::string TreeNode::makePath(const int mode) {
   size_t len = makePathHelper(this, buffer, mode, logger);
   return std::string(buffer, len);
 }
+
+}  // namespace tree

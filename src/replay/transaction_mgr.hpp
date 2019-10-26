@@ -22,19 +22,23 @@
 #include <memory>
 #include <unordered_map>
 
-#include "replay/replay_engine.hpp"
-#include "parser/frame.hpp"
 #include "display/logger.hpp"
+#include "parser/frame.hpp"
+#include "replay/engine.hpp"
 #include "settings.hpp"
 #include "stats.hpp"
 
 #define GC_MAX_TRANSACTIONTIME (5 * 60)
 
+namespace replay {
+
 class TransactionMgr {
  private:
+  using Frame = parser::Frame;
+
   Settings &sett;
   Stats &stats;
-  ReplayEngine engine;
+  Engine engine;
   Logger &logger;
   // map transaction ids to frames
   std::unordered_map<uint32_t, std::unique_ptr<const Frame>> transactions;
@@ -54,5 +58,7 @@ class TransactionMgr {
   int process(std::unique_ptr<const Frame> &&frame);
   void gc(int64_t time);
 };
+
+}  // namespace replay
 
 #endif /* TRANSACTIONMGR_H_ */

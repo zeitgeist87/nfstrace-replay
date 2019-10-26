@@ -27,13 +27,18 @@
 #include "settings.hpp"
 #include "stats.hpp"
 
-class Logger;
+namespace replay {
 class TransactionMgr;
+}
+
+namespace display {
+
+class Logger;
 
 class ConsoleDisplay {
   Settings &sett;
   Stats &stats;
-  TransactionMgr &transMgr;
+  replay::TransactionMgr &transMgr;
 
   WINDOW *timeWin = nullptr;
   WINDOW *debugWin = nullptr;
@@ -42,8 +47,10 @@ class ConsoleDisplay {
 
   int64_t last_print = 0;
 
+  using Frame = parser::Frame;
+
  public:
-  ConsoleDisplay(Settings &sett, Stats &stats, TransactionMgr &transMgr,
+  ConsoleDisplay(Settings &sett, Stats &stats, replay::TransactionMgr &transMgr,
                  Logger &logger);
 
   virtual ~ConsoleDisplay() { destroy(); }
@@ -89,5 +96,7 @@ class ConsoleDisplay {
 
   void process(Frame *frame);
 };
+
+}  // namespace display
 
 #endif /* CONSOLEDISPLAY_H_ */
