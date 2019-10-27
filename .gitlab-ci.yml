@@ -3,6 +3,7 @@ image: $CI_REGISTRY_IMAGE
 stages:
   - docker
   - build
+  - test
 
 variables:
   DOCKER_DRIVER: overlay2
@@ -32,3 +33,18 @@ build:
   artifacts:
     paths:
       - build/nfsreplay
+      - build/nfsreplay_test
+
+unit-tests:
+  dependencies:
+    - build
+  script:
+    - cd build
+    - ./nfsreplay_test -r junit -o ../test-report.xml
+  artifacts:
+    when: always
+    paths:
+      - test-report.xml
+    reports:
+      junit:
+        - test-report.xml
