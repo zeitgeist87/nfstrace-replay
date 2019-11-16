@@ -13,7 +13,6 @@ if(NOT catch_POPULATED)
 endif()
 
 list(APPEND CMAKE_MODULE_PATH ${catch_SOURCE_DIR}/contrib/)
-include(CTest)
 include(ParseAndAddCatchTests)
 
 target_sources(${TEST_EXE}

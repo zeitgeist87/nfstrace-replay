@@ -3,12 +3,12 @@ project(nfstrace-replay)
 
 include(CheckIPOSupported)
 include(CheckCXXCompilerFlag)
+include(CTest)
 
 find_package(Curses)
 
 set(MAIN_EXE nfsreplay)
 set(TEST_EXE ${MAIN_EXE}_test)
-
 
 add_executable(${MAIN_EXE} "")
 add_executable(${TEST_EXE} "")
