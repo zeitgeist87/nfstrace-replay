@@ -20,6 +20,7 @@
 #define FILEHANDLE_H_
 
 #include <cstring>
+#include <cstdint>
 #include <cstdio>
 #include <string>
 #include <functional>
