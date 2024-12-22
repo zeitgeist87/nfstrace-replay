@@ -19,6 +19,7 @@
 #include <cstring>
 #include <cstdio>
 #include <string>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <unistd.h>
@@ -52,9 +53,10 @@ using namespace std;
 	"  -S\t\tdisable syncing\n"					\
 	"  -t\t\tdisplay current time (default)\n"			\
 	"  -T\t\tdon't display current time\n"				\
-	"  -z\t\twrite only zeros (default is random data)\n"\
-	"  -x\t\ttarget directory to write to\n"
-
+	"  -z\t\ttwrite only zeros (default is random data)\n"\
+	"  -x\t\ttarget directory to write to\n" \
+	"  -C\t\texternal Command invoked at the specified frequency\n" \
+	"  -c\t\tinterval the external command is invoked (seconds)\n"
 void handler(int sig)
 {
 	void *array[100];
@@ -151,7 +153,7 @@ static int parseParams(int argc, char **argv, Settings &sett)
 	int c;
 	int tmp;
 
-	while ((c = getopt(argc, argv, "dDzs:x:ShitTb:l:gGr:")) != -1) {
+	while ((c = getopt(argc, argv, "dDzs:x:c:C:ShitTb:l:gGr:")) != -1) {
 		switch (c) {
 		case 'z':
 			//write only zeros
@@ -204,6 +206,15 @@ static int parseParams(int argc, char **argv, Settings &sett)
 			break;
 		case 'x':
 			sett.targetPath = optarg;
+			break;
+		case 'C':
+			sett.extCmd = optarg;
+			break;
+		case 'c':
+			tmp = atoi(optarg);
+			if (tmp > 0) {
+				sett.extCmdInterval = tmp;
+			}
 			break;
 		case '?':
 			if (optopt == 's' || optopt == 'b')
@@ -272,6 +283,7 @@ int main(int argc, char **argv)
 	TransactionMgr transMgr(sett, stats, logger);
 	ConsoleDisplay disp(sett, stats, transMgr, logger);
 	Parser parser;
+	int64_t lastCmdExec = 0;
 
 	try {
 		while (fgets(line, sizeof(line), input) != NULL) {
@@ -295,6 +307,13 @@ int main(int argc, char **argv)
 
 			stats.process(frame);
 			disp.process(frame);
+
+			if(sett.extCmdInterval > 0 && (frame->time - lastCmdExec) > sett.extCmdInterval) {
+				closeSyncHandle(sett);
+				system(sett.extCmd.c_str());
+				createSyncHandle(sett);
+				lastCmdExec = frame->time;
+			}
 
 			if (transMgr.process(frame))
 				break;
