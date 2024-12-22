@@ -20,6 +20,7 @@
 #define FRAME_H_
 
 #include <string>
+#include <cstdint>
 #include "FileHandle.h"
 
 enum Protocol {

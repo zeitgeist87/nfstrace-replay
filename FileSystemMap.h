@@ -97,6 +97,7 @@ public:
 		}
 
 		TreeNode::setLogger(&logger);
+		TreeNode::setSettings(&sett);
 	}
 
 	virtual ~FileSystemMap() {

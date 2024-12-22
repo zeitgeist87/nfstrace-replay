@@ -1,6 +1,6 @@
 /*
  * nfstrace-replay - Small command line tool to replay file system traces
- * Copyright (C) 2014  Andreas Rohner
+ * Copyright (C) 2014  Andreas Rohner, 2024  Clemens Eisserer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -28,6 +28,7 @@
 #include "TraceException.h"
 
 Logger *TreeNode::logger;
+Settings *TreeNode::settings;
 
 void TreeNode::writeToSize(uint64_t size)
 {
@@ -196,13 +197,26 @@ std::string TreeNode::calcPath()
 	} while (node);
 
 	++pos;
+
+	int targetPathLen = settings->targetPath.size();
+	if(targetPathLen > 0) {
+		pos -= targetPathLen;
+		if (pos <= buffer)
+					throw TraceException("TreeNode: Path too long");
+
+		memcpy(pos, settings->targetPath.c_str(), targetPathLen);
+	}
+
 	return std::string(pos, (size_t) (buffer + 4096 - pos));
 }
 
-static size_t makePathHelper(TreeNode *node, char *buffer, const int mode, Logger *logger)
+size_t TreeNode::makePathHelper(TreeNode *node, char *buffer, const int mode, Logger *logger)
 {
-	if (!node)
-		return 0;
+	if (!node) {
+		int targetPathLen = settings->targetPath.size();
+		memcpy(buffer, settings->targetPath.c_str(), targetPathLen);
+		return targetPathLen;
+	}
 
 	size_t pos = makePathHelper(node->getParent(), buffer, mode, logger);
 
@@ -234,7 +248,6 @@ std::string TreeNode::makePath(const int mode)
 		return calcPath();
 
 	char buffer[4096];
-
 	size_t len = makePathHelper(this, buffer, mode, logger);
 	return std::string(buffer, len);
 }
