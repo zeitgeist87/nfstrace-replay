@@ -64,7 +64,10 @@ public:
 	bool dataSync = false;
 	bool inodeTest = false;
 	bool enableGC = true;
+	std::string targetPath;
 	std::string reportPath;
+	std::string extCmd;
+	uint32_t extCmdInterval = 0;
 	int64_t startTime = -1;
 	int64_t endTime = -1;
 	int startAfterDays = -1;

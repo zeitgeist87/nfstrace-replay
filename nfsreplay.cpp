@@ -1,6 +1,6 @@
 /*
  * nfstrace-replay - Small command line tool to replay file system traces
- * Copyright (C) 2014  Andreas Rohner
+ * Copyright (C) 2014  Andreas Rohner, 2024  Clemens Eisserer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -52,7 +52,8 @@ using namespace std;
 	"  -S\t\tdisable syncing\n"					\
 	"  -t\t\tdisplay current time (default)\n"			\
 	"  -T\t\tdon't display current time\n"				\
-	"  -z\t\twrite only zeros (default is random data)\n"
+	"  -z\t\twrite only zeros (default is random data)\n"\
+	"  -x\t\ttarget directory to write to\n"
 
 void handler(int sig)
 {
@@ -148,8 +149,9 @@ static FILE *openInputFile(char *filename)
 static int parseParams(int argc, char **argv, Settings &sett)
 {
 	int c;
+	int tmp;
 
-	while ((c = getopt(argc, argv, "dDzs:ShitTb:l:gGr:")) != -1) {
+	while ((c = getopt(argc, argv, "dDzs:x:ShitTb:l:gGr:")) != -1) {
 		switch (c) {
 		case 'z':
 			//write only zeros
@@ -157,7 +159,7 @@ static int parseParams(int argc, char **argv, Settings &sett)
 			break;
 		case 's': {
 			//sync every x minutes
-			int tmp = atoi(optarg);
+			tmp = atoi(optarg);
 			if (tmp > 0) {
 				sett.syncMinutes = tmp;
 			}
@@ -200,6 +202,9 @@ static int parseParams(int argc, char **argv, Settings &sett)
 		case 'G':
 			sett.enableGC = false;
 			break;
+		case 'x':
+			sett.targetPath = optarg;
+			break;
 		case '?':
 			if (optopt == 's' || optopt == 'b')
 				fprintf(stderr,
@@ -219,6 +224,19 @@ static int parseParams(int argc, char **argv, Settings &sett)
 	}
 
 	return EXIT_SUCCESS;
+}
+
+void createSyncHandle(Settings &sett) {
+	if ((sett.syncFd = open((sett.targetPath + ".sync_file_handle").c_str(), O_RDONLY | O_CREAT, S_IRUSR | S_IWUSR)) == -1) {
+		throw TraceException("ERROR initializing sync file handle");
+	}
+}
+
+void closeSyncHandle(Settings &sett) {
+	if(sett.syncFd != -1) {
+		close(sett.syncFd);
+		remove((sett.targetPath + ".sync_file_handle").c_str());
+	}
 }
 
 int main(int argc, char **argv)
@@ -248,11 +266,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-
-	if ((sett.syncFd = open(".sync_file_handle", O_RDONLY | O_CREAT, S_IRUSR | S_IWUSR)) == -1) {
-		perror("ERROR initializing sync file handle");
-		return EXIT_FAILURE;
-	}
+	createSyncHandle(sett);
 
 	Logger logger;
 	TransactionMgr transMgr(sett, stats, logger);
@@ -294,8 +308,7 @@ int main(int argc, char **argv)
 	}
 
 	fclose(input);
-	close(sett.syncFd);
-	remove(".sync_file_handle");
+	closeSyncHandle(sett);
 
 	return ret;
 }

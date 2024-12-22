@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <cstdio>
 
+#include "Settings.h"
 #include "FileHandle.h"
 #include "Logger.h"
 #include "TraceException.h"
@@ -32,6 +33,8 @@
 class TreeNode {
 private:
 	static Logger *logger;
+	static Settings *settings;
+
 	TreeNode *parent;
 	std::string name;
 	FileHandle fh;
@@ -41,9 +44,15 @@ private:
 	std::map<std::string, TreeNode *> children;
 	int64_t last_access;
 
+	size_t makePathHelper(TreeNode *node, char *buffer, const int mode, Logger *logger);
+
 public:
 	static void setLogger(Logger *l) {
 		logger = l;
+	}
+
+	static void setSettings(Settings *s) {
+		settings = s;
 	}
 
 	TreeNode(const FileHandle &fh, int64_t timestamp) :
